@@ -1,0 +1,95 @@
+{
+  "name": "Green VFD Display",
+  "author": "XJDash Team",
+  "version": "1.0.0",
+  "description": "Classic green vacuum fluorescent display like 1980s electronics. Bright, crisp, and nostalgic.",
+
+  "background": {
+    "type": "solid",
+    "color": [0, 15, 0],
+    "opacity": 1.0
+  },
+
+  "colors": {
+    "primary": [0, 255, 0],
+    "secondary": [0, 200, 0],
+    "accent": [100, 255, 100],
+    "dim": [0, 100, 0],
+    "warning": [255, 255, 0],
+    "critical": [255, 100, 0],
+    "inactive": [0, 40, 0],
+    "background": [0, 15, 0],
+    "background_overlay": [0, 15, 0, 255]
+  },
+
+  "fonts": {
+    "gauge_numbers": {
+      "family": "digital_7.ttf",
+      "size": 70
+    },
+    "labels": {
+      "family": "vt323.ttf",
+      "size": 18
+    },
+    "ui_text": {
+      "family": "vt323.ttf",
+      "size": 14
+    }
+  },
+
+  "gauges": {
+    "rpm_gauge": {
+      "type": "horizontal_bar",
+      "position": [40, 600],
+      "size": [400, 80],
+      "min": 0,
+      "max": 6000,
+      "redline": 5000,
+      "colors": {
+        "normal": [0, 255, 0],
+        "redline": [255, 255, 0]
+      },
+      "segments": 20,
+      "show_numbers": true,
+      "glow": true,
+      "style": "segmented"
+    },
+    "temp_gauge": {
+      "type": "horizontal_bar",
+      "position": [40, 480],
+      "size": [400, 60],
+      "min": 100,
+      "max": 260,
+      "warning_threshold": 230,
+      "colors": {
+        "normal": [0, 255, 0],
+        "warning": [255, 255, 0],
+        "critical": [255, 100, 0]
+      },
+      "segments": 16
+    },
+    "lcd_readouts": {
+      "font_size": 22,
+      "spacing": 32,
+      "segment_style": "vfd_style",
+      "color": [0, 255, 0],
+      "glow_intensity": 0.3
+    }
+  },
+
+  "effects": {
+    "smooth_animations": false,
+    "glow": true,
+    "shadows": false,
+    "scan_lines": true,
+    "lcd_segments": false,
+    "phosphor_glow": true,
+    "crt_curvature": false
+  },
+
+  "layout": {
+    "orientation": "portrait",
+    "width": 480,
+    "height": 800
+  }
+}

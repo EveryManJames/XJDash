@@ -1,0 +1,101 @@
+{
+  "name": "Custom Photo Background",
+  "author": "YourName",
+  "version": "1.0.0",
+  "description": "Show off your loved one while checking engine vitals. Modern aesthetic with custom photo background.",
+
+  "background": {
+    "type": "image",
+    "path": "assets/images/backgrounds/girlfriend.jpg",
+    "opacity": 0.35,
+    "blur": 8,
+    "darken": 0.65,
+    "fit": "cover"
+  },
+
+  "colors": {
+    "primary": [255, 255, 255],
+    "secondary": [220, 220, 220],
+    "accent": [255, 120, 180],
+    "dim": [150, 150, 150],
+    "warning": [255, 200, 100],
+    "critical": [255, 100, 100],
+    "inactive": [80, 80, 80],
+    "background": [0, 0, 0],
+    "background_overlay": [0, 0, 0, 200]
+  },
+
+  "fonts": {
+    "gauge_numbers": {
+      "family": "digital_7.ttf",
+      "size": 68
+    },
+    "labels": {
+      "family": "vt323.ttf",
+      "size": 20
+    },
+    "ui_text": {
+      "family": "vt323.ttf",
+      "size": 16
+    }
+  },
+
+  "gauges": {
+    "rpm_gauge": {
+      "type": "circular",
+      "position": [240, 500],
+      "size": [220, 220],
+      "min": 0,
+      "max": 6000,
+      "redline": 5000,
+      "colors": {
+        "normal": [255, 255, 255],
+        "redline": [255, 120, 180]
+      },
+      "segments": 24,
+      "needle_style": "modern",
+      "show_numbers": true,
+      "glow": true,
+      "background_opacity": 0.6
+    },
+    "temp_gauge": {
+      "type": "circular_arc",
+      "position": [100, 350],
+      "size": [120, 120],
+      "min": 100,
+      "max": 260,
+      "warning_threshold": 230,
+      "colors": {
+        "normal": [100, 200, 255],
+        "warning": [255, 200, 100],
+        "critical": [255, 100, 100]
+      },
+      "gradient": true
+    },
+    "lcd_readouts": {
+      "font_size": 26,
+      "spacing": 40,
+      "segment_style": "modern_digital",
+      "color": [255, 255, 255],
+      "background": [0, 0, 0, 180],
+      "padding": 10,
+      "border_radius": 8
+    }
+  },
+
+  "effects": {
+    "smooth_animations": true,
+    "glow": true,
+    "shadows": true,
+    "scan_lines": false,
+    "lcd_segments": false,
+    "glass_effect": true,
+    "blur_background": true
+  },
+
+  "layout": {
+    "orientation": "portrait",
+    "width": 480,
+    "height": 800
+  }
+}

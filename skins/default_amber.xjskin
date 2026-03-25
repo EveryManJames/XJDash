@@ -1,0 +1,92 @@
+{
+  "name": "1990 Amber LCD",
+  "author": "XJDash Team",
+  "version": "1.0.0",
+  "description": "Classic 1990 Jeep Cherokee amber backlit LCD display. Authentic retro vibes.",
+
+  "background": {
+    "type": "solid",
+    "color": [0, 0, 0],
+    "opacity": 1.0
+  },
+
+  "colors": {
+    "primary": [255, 176, 0],
+    "secondary": [204, 140, 0],
+    "accent": [255, 200, 50],
+    "dim": [102, 68, 0],
+    "warning": [255, 150, 0],
+    "critical": [255, 0, 0],
+    "inactive": [40, 26, 0],
+    "background": [0, 0, 0],
+    "background_overlay": [0, 0, 0, 255]
+  },
+
+  "fonts": {
+    "gauge_numbers": {
+      "family": "digital_7.ttf",
+      "size": 72
+    },
+    "labels": {
+      "family": "lcd_mono.ttf",
+      "size": 18
+    },
+    "ui_text": {
+      "family": "lcd_mono.ttf",
+      "size": 14
+    }
+  },
+
+  "gauges": {
+    "rpm_gauge": {
+      "type": "circular",
+      "position": [240, 500],
+      "size": [200, 200],
+      "min": 0,
+      "max": 6000,
+      "redline": 5000,
+      "colors": {
+        "normal": [255, 176, 0],
+        "redline": [255, 0, 0]
+      },
+      "segments": 12,
+      "needle_style": "classic",
+      "show_numbers": true,
+      "glow": false
+    },
+    "temp_gauge": {
+      "type": "vertical_bar",
+      "position": [50, 200],
+      "size": [60, 250],
+      "min": 100,
+      "max": 260,
+      "warning_threshold": 230,
+      "colors": {
+        "normal": [255, 176, 0],
+        "warning": [255, 150, 0],
+        "critical": [255, 0, 0]
+      }
+    },
+    "lcd_readouts": {
+      "font_size": 24,
+      "spacing": 35,
+      "segment_style": "classic_lcd",
+      "color": [255, 176, 0]
+    }
+  },
+
+  "effects": {
+    "smooth_animations": false,
+    "glow": false,
+    "shadows": false,
+    "scan_lines": false,
+    "lcd_segments": true,
+    "pixel_perfect": true
+  },
+
+  "layout": {
+    "orientation": "portrait",
+    "width": 480,
+    "height": 800
+  }
+}

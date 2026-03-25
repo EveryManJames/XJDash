@@ -1,0 +1,31 @@
+# XJDash Requirements
+# Python 3.9+
+
+# Core Framework
+kivy==2.3.0
+kivy-garden==0.1.5
+
+# Optional: Material Design Components
+# kivymd==1.1.1
+
+# Serial Communication
+pyserial==3.5
+
+# GPIO Control (Raspberry Pi only - will fail gracefully on desktop)
+RPi.GPIO==0.7.1; platform_machine == "armv7l" or platform_machine == "aarch64"
+
+# Data Logging
+# (SQLite is built into Python)
+
+# Image Processing (for custom backgrounds)
+Pillow==10.1.0
+
+# GPS Support (optional)
+pynmea2==1.19.0
+
+# Development/Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Mockup Generation
+reportlab==4.0.7
