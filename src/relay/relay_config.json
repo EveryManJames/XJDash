@@ -1,0 +1,86 @@
+{
+  "modbus": {
+    "port": "/dev/ttyUSB0",
+    "baudrate": 9600,
+    "parity": "N",
+    "stopbits": 1,
+    "bytesize": 8,
+    "slave_address": 1,
+    "timeout": 1
+  },
+  "channels": {
+    "1": {
+      "name": "AW-4 Solenoid 1",
+      "description": "Shift Solenoid 1",
+      "enabled": true,
+      "auto_control": false,
+      "manual_control": true,
+      "icon": "transmission"
+    },
+    "2": {
+      "name": "AW-4 Solenoid 2",
+      "description": "Shift Solenoid 2",
+      "enabled": true,
+      "auto_control": false,
+      "manual_control": true,
+      "icon": "transmission"
+    },
+    "3": {
+      "name": "AW-4 Solenoid 3",
+      "description": "Shift Solenoid 3",
+      "enabled": true,
+      "auto_control": false,
+      "manual_control": true,
+      "icon": "transmission"
+    },
+    "4": {
+      "name": "Electric Fan Low",
+      "description": "High-flow electric fan - low speed",
+      "enabled": true,
+      "auto_control": true,
+      "trigger_temp": 210,
+      "trigger_temp_off": 195,
+      "manual_override": true,
+      "icon": "fan"
+    },
+    "5": {
+      "name": "Electric Fan High",
+      "description": "High-flow electric fan - high speed",
+      "enabled": true,
+      "auto_control": true,
+      "trigger_temp": 225,
+      "trigger_temp_off": 210,
+      "manual_override": true,
+      "icon": "fan"
+    },
+    "6": {
+      "name": "Light Bar 1",
+      "description": "Auxiliary light bar",
+      "enabled": true,
+      "auto_control": false,
+      "manual_control": true,
+      "icon": "lightbar"
+    },
+    "7": {
+      "name": "Light Bar 2",
+      "description": "Secondary light bar",
+      "enabled": true,
+      "auto_control": false,
+      "manual_control": true,
+      "icon": "lightbar"
+    },
+    "8": {
+      "name": "Spare",
+      "description": "Unassigned relay",
+      "enabled": false,
+      "auto_control": false,
+      "manual_control": true,
+      "icon": "relay"
+    }
+  },
+  "safety": {
+    "min_cycle_time_seconds": 1.0,
+    "max_simultaneous_relays": 8,
+    "heartbeat_interval_seconds": 5
+  }
+}

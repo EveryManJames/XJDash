@@ -44,9 +44,12 @@
 │  └────────────────────────────────────────────────────┘  │
 │                                                           │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │  GPIO Relay Control Manager (OPTIONAL MODULE)      │  │
+│  │  RS485/Modbus Relay Control Manager (OPTIONAL)     │  │
 │  │  ────────────────────────────────────────────      │  │
-│  │  - Controls up to 8 relays via GPIO pins           │  │
+│  │  - Waveshare Modbus RTU 8-Ch Relay Module (B)      │  │
+│  │  - Remote-mounted (engine bay / separate box)      │  │
+│  │  - Connected via USB-to-RS485 adapter + 2-wire     │  │
+│  │  - Relay module powered by vehicle 12V (7-36V in)  │  │
 │  │  - User-configurable:                              │  │
 │  │    • AW-4 Solenoid 1, 2, 3 (for Nifty Shifter)    │  │
 │  │    • Electric fan control (3-speed)                │  │
@@ -54,6 +57,7 @@
 │  │    • Custom relay assignments                      │  │
 │  │  - Safety lockouts and timers                      │  │
 │  │  - Touch-based ON/OFF controls on screen           │  │
+│  │  - No GPIO pins used — all via RS485 serial        │  │
 │  └────────────────────────────────────────────────────┘  │
 │                                                           │
 │  ┌────────────────────────────────────────────────────┐  │
@@ -129,9 +133,10 @@ XJDash/
 │   │   ├── logger.py            # Data logging to SQLite
 │   │   └── event_bus.py         # Pub/sub for data updates
 │   │
-│   ├── gpio/
+│   ├── relay/
 │   │   ├── __init__.py
-│   │   ├── relay_controller.py  # GPIO relay control
+│   │   ├── relay_controller.py  # RS485/Modbus relay control
+│   │   ├── mock_relay.py        # Mock relay for desktop dev
 │   │   └── relay_config.json    # User relay assignments
 │   │
 │   ├── skins/
@@ -203,31 +208,53 @@ XJDash/
 
 ---
 
-## GPIO Relay Control Module
+## RS485/Modbus Relay Control Module
 
 ### Hardware Setup
 
-**Recommended Relay Board:** 8-Channel 5V Relay Module (active-low trigger)
+**Relay Board:** Waveshare Industrial Modbus RTU 8-Ch Relay Module (B)
+- RS485 interface, Modbus RTU protocol
+- 7-36V DC power input (runs off Jeep 12V)
+- 10A @ 250V AC / 30V DC per channel
+- Configurable device address (1-255)
+- DIN rail mount in ABS enclosure
+- Multi-isolation: power supply, magnetic, photocoupler, TVS
 
-**GPIO Pin Mapping** (BCM numbering):
+**Connection to Pi 4:**
+```
+Pi 4 USB → USB-to-RS485 Adapter → 2-wire twisted pair → Relay Module
+              (e.g. /dev/ttyUSB0)     (through firewall)    (engine bay)
+```
+
+**Modbus Configuration:**
 ```python
-RELAY_PINS = {
-    1: 17,  # GPIO17 - Relay 1 (AW-4 Solenoid 1)
-    2: 27,  # GPIO27 - Relay 2 (AW-4 Solenoid 2)
-    3: 22,  # GPIO22 - Relay 3 (AW-4 Solenoid 3)
-    4: 23,  # GPIO23 - Relay 4 (Electric Fan Low)
-    5: 24,  # GPIO24 - Relay 5 (Electric Fan High)
-    6: 25,  # GPIO25 - Relay 6 (Light Bar 1)
-    7: 5,   # GPIO5  - Relay 7 (Light Bar 2)
-    8: 6,   # GPIO6  - Relay 8 (Spare / Custom)
+MODBUS_CONFIG = {
+    'port': '/dev/ttyUSB0',     # USB-to-RS485 adapter
+    'baudrate': 9600,            # Default for Waveshare module
+    'parity': 'N',
+    'stopbits': 1,
+    'bytesize': 8,
+    'slave_address': 0x01,       # Configurable 1-255
+    'timeout': 1,                # seconds
+}
+
+# Modbus coil addresses for each relay (0-indexed)
+RELAY_COILS = {
+    1: 0x00,  # Relay 1 (AW-4 Solenoid 1)
+    2: 0x01,  # Relay 2 (AW-4 Solenoid 2)
+    3: 0x02,  # Relay 3 (AW-4 Solenoid 3)
+    4: 0x03,  # Relay 4 (Electric Fan Low)
+    5: 0x04,  # Relay 5 (Electric Fan High)
+    6: 0x05,  # Relay 6 (Light Bar 1)
+    7: 0x06,  # Relay 7 (Light Bar 2)
+    8: 0x07,  # Relay 8 (Spare / Custom)
 }
 ```
 
 ### Safety Features
 
-1. **Ignition Interlock** - Read ignition signal from GPIO pin
-   - Relays auto-disable when ignition OFF
-   - Prevents battery drain
+1. **All-Off on Disconnect** - If RS485 comms lost, app sends all-off on reconnect
+   - Prevents stuck relays if cable disconnects
 
 2. **Timers** - Prevent rapid cycling
    - Minimum ON time: 1 second
@@ -236,6 +263,8 @@ RELAY_PINS = {
 3. **Max Current Protection** - User sets max relays active simultaneously
 
 4. **Override Lock** - Admin PIN to unlock dangerous combinations
+
+5. **Heartbeat** - Periodic relay state read-back to verify actual state matches expected
 
 ### User Configuration
 
@@ -408,30 +437,32 @@ class MockREMSerial:
         return self.format_normal_mode()
 ```
 
-### 3. GPIO Simulation
-Mock GPIO module for desktop development:
+### 3. Relay Simulation
+Mock relay module for desktop development (no RS485 hardware needed):
 
 ```python
-# src/gpio/mock_gpio.py
-class MockGPIO:
-    """Simulates RPi.GPIO for development"""
+# src/relay/mock_relay.py
+class MockRelayController:
+    """Simulates Waveshare Modbus RTU relay for development"""
 
-    BCM = "BCM"
-    OUT = "OUT"
-    LOW = 0
-    HIGH = 1
+    def __init__(self):
+        self._states = {i: False for i in range(1, 9)}
 
-    @staticmethod
-    def setmode(mode):
-        print(f"[MOCK GPIO] Set mode: {mode}")
+    def connect(self):
+        print("[MOCK RELAY] Connected (simulated)")
+        return True
 
-    @staticmethod
-    def setup(pin, mode):
-        print(f"[MOCK GPIO] Setup pin {pin} as {mode}")
+    def set_relay(self, channel, state):
+        self._states[channel] = state
+        print(f"[MOCK RELAY] CH{channel} = {'ON' if state else 'OFF'}")
 
-    @staticmethod
-    def output(pin, state):
-        print(f"[MOCK GPIO] Pin {pin} = {state}")
+    def get_relay(self, channel):
+        return self._states[channel]
+
+    def all_off(self):
+        for ch in self._states:
+            self._states[ch] = False
+        print("[MOCK RELAY] All channels OFF")
 ```
 
 ### 4. Mockup Generation
@@ -468,7 +499,7 @@ curl -sSL https://raw.githubusercontent.com/YourGitHub/XJDash/main/install.sh | 
 3. Installs Kivy from PiWheels
 4. Configures touchscreen input
 5. Sets up auto-start on boot
-6. Configures GPIO permissions
+6. Configures serial port permissions (RS485 adapter)
 7. Clones XJDash repo
 8. Runs first-time setup wizard
 

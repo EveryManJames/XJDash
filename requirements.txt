@@ -11,8 +11,8 @@ kivy-garden==0.1.5
 # Serial Communication
 pyserial==3.5
 
-# GPIO Control (Raspberry Pi only - will fail gracefully on desktop)
-RPi.GPIO==0.7.1; platform_machine == "armv7l" or platform_machine == "aarch64"
+# RS485/Modbus RTU Relay Control (Waveshare 8-Ch Relay Module)
+pymodbus==3.7.4
 
 # Data Logging
 # (SQLite is built into Python)
