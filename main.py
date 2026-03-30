@@ -8,6 +8,7 @@ License: MIT
 """
 
 import os
+import signal
 import sys
 
 # Add src directory to path
@@ -33,6 +34,7 @@ Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 from core.serial_manager import SerialManager
 from core.data_manager import DataManager
 from core.gyro_manager import GyroManager
+from core.ignition_monitor import IgnitionShutdownManager
 from skins.skin_manager import SkinManager
 
 # Import screens (we'll create these)
@@ -53,6 +55,11 @@ class XJDashApp(App):
         self.serial_manager = SerialManager(self.data_manager)
         self.gyro_manager = GyroManager(self.data_manager)
         self.skin_manager = SkinManager()
+
+        # Ignition-sense shutdown manager
+        self.ignition_monitor = IgnitionShutdownManager(
+            cleanup_callback=self._cleanup,
+        )
 
         # Screen manager
         self.screen_manager = None
@@ -89,16 +96,39 @@ class XJDashApp(App):
         # (will use mock data if BNO055 not connected)
         self.gyro_manager.connect()
 
+        # Start ignition sense monitoring
+        # (disabled automatically on desktop — no RPi.GPIO)
+        self.ignition_monitor.start()
+
+        # Handle SIGTERM / SIGINT so systemd stop and Ctrl-C
+        # still trigger a clean shutdown
+        signal.signal(signal.SIGTERM, self._signal_handler)
+        signal.signal(signal.SIGINT, self._signal_handler)
+
         print("✅ XJDash ready!")
 
     def on_stop(self):
-        """Called when app stops"""
-        print("🛑 XJDash stopping...")
+        """Called when app stops (normal Kivy exit)"""
+        self._cleanup()
 
-        # Clean shutdown
+    def _cleanup(self):
+        """Shared shutdown sequence used by on_stop, signal handler, and ignition monitor."""
+        if getattr(self, '_cleaned_up', False):
+            return
+        self._cleaned_up = True
+
+        print("🛑 XJDash shutting down...")
+        self.ignition_monitor.stop()
         self.serial_manager.disconnect()
         self.gyro_manager.disconnect()
         self.data_manager.close()
+        print("🛑 Cleanup complete")
+
+    def _signal_handler(self, signum, frame):
+        """Handle SIGTERM/SIGINT for clean shutdown."""
+        print(f"[SIG] Received signal {signum} — shutting down")
+        self._cleanup()
+        self.stop()
 
 
 if __name__ == '__main__':

@@ -24,6 +24,9 @@ Pillow==10.1.0
 adafruit-circuitpython-bno055==5.4.11
 adafruit-blinka==8.25.0
 
+# GPIO - Ignition sense shutdown (Pi only, not installed on desktop)
+# RPi.GPIO==0.7.1
+
 # GPS Support (optional)
 pynmea2==1.19.0
 
