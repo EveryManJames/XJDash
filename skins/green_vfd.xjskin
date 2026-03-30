@@ -74,6 +74,23 @@
       "segment_style": "vfd_style",
       "color": [0, 255, 0],
       "glow_intensity": 0.3
+    },
+    "gyro_gauge": {
+      "type": "dual_bar",
+      "position": [40, 100],
+      "size": [400, 80],
+      "min": -45,
+      "max": 45,
+      "warning_threshold": 30,
+      "colors": {
+        "normal": [0, 255, 0],
+        "warning": [255, 255, 0],
+        "critical": [255, 100, 0],
+        "zero_line": [0, 100, 0]
+      },
+      "show_labels": true,
+      "show_degrees": true,
+      "glow": true
     }
   },
 

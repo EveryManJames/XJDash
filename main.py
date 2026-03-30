@@ -32,6 +32,7 @@ Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 from core.serial_manager import SerialManager
 from core.data_manager import DataManager
+from core.gyro_manager import GyroManager
 from skins.skin_manager import SkinManager
 
 # Import screens (we'll create these)
@@ -50,6 +51,7 @@ class XJDashApp(App):
         # Core managers
         self.data_manager = DataManager()
         self.serial_manager = SerialManager(self.data_manager)
+        self.gyro_manager = GyroManager(self.data_manager)
         self.skin_manager = SkinManager()
 
         # Screen manager
@@ -83,6 +85,10 @@ class XJDashApp(App):
         # (will use mock data if REM not connected)
         self.serial_manager.connect()
 
+        # Start gyroscope/IMU
+        # (will use mock data if BNO055 not connected)
+        self.gyro_manager.connect()
+
         print("✅ XJDash ready!")
 
     def on_stop(self):
@@ -91,6 +97,7 @@ class XJDashApp(App):
 
         # Clean shutdown
         self.serial_manager.disconnect()
+        self.gyro_manager.disconnect()
         self.data_manager.close()
 
 

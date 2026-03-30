@@ -80,6 +80,24 @@
       "background": [0, 0, 0, 180],
       "padding": 10,
       "border_radius": 8
+    },
+    "gyro_gauge": {
+      "type": "dual_bar",
+      "position": [40, 100],
+      "size": [400, 80],
+      "min": -45,
+      "max": 45,
+      "warning_threshold": 30,
+      "colors": {
+        "normal": [255, 255, 255],
+        "warning": [255, 200, 100],
+        "critical": [255, 100, 100],
+        "zero_line": [150, 150, 150]
+      },
+      "show_labels": true,
+      "show_degrees": true,
+      "glow": true,
+      "background_opacity": 0.6
     }
   },
 
