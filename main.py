@@ -34,6 +34,7 @@ Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 from core.serial_manager import SerialManager
 from core.data_manager import DataManager
 from core.gyro_manager import GyroManager
+from core.power_latch import PowerLatch
 from core.ignition_monitor import IgnitionShutdownManager
 from skins.skin_manager import SkinManager
 
@@ -50,6 +51,12 @@ class XJDashApp(App):
         super().__init__(**kwargs)
         self.title = "XJDash - Jeep Cherokee Digital Dashboard"
 
+        # Power latch — hold the relay ON so buck converter stays powered
+        # Must be engaged before anything else so we don't lose power
+        # if the ignition key is released during boot
+        self.power_latch = PowerLatch()
+        self.power_latch.engage()
+
         # Core managers
         self.data_manager = DataManager()
         self.serial_manager = SerialManager(self.data_manager)
@@ -59,6 +66,7 @@ class XJDashApp(App):
         # Ignition-sense shutdown manager
         self.ignition_monitor = IgnitionShutdownManager(
             cleanup_callback=self._cleanup,
+            power_latch=self.power_latch,
         )
 
         # Screen manager
@@ -128,6 +136,7 @@ class XJDashApp(App):
         """Handle SIGTERM/SIGINT for clean shutdown."""
         print(f"[SIG] Received signal {signum} — shutting down")
         self._cleanup()
+        self.power_latch.release()
         self.stop()
 
 

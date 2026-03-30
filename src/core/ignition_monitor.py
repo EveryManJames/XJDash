@@ -2,7 +2,8 @@
 Ignition Shutdown Manager - Monitors switched 12V ignition line via GPIO
 
 Detects when the ignition key is turned off (GPIO pin goes LOW) and triggers
-a graceful shutdown sequence: relays off → app cleanup → OS halt.
+a graceful shutdown sequence: relays off → app cleanup → release power latch
+→ OS halt.
 
 Hardware wiring:
     Switched 12V (IGN wire) ──[ 10kΩ ]──┬── GPIO pin (default GPIO17, pin 11)
@@ -27,6 +28,8 @@ import threading
 import time
 from typing import Callable, Optional
 
+from core.power_latch import PowerLatch
+
 try:
     import RPi.GPIO as GPIO
     GPIO_AVAILABLE = True
@@ -48,12 +51,13 @@ class IgnitionShutdownManager:
     """
     Monitors a GPIO pin connected to the switched 12V ignition line.
     When the pin goes LOW for longer than the debounce period, runs
-    a cleanup callback and then halts the Pi.
+    a cleanup callback, releases the power latch, and halts the Pi.
     """
 
     def __init__(
         self,
         cleanup_callback: Callable[[], None],
+        power_latch: PowerLatch,
         gpio_pin: int = DEFAULT_IGN_PIN,
         debounce_seconds: float = DEFAULT_DEBOUNCE_SECONDS,
         enable_halt: bool = True,
@@ -62,12 +66,14 @@ class IgnitionShutdownManager:
         Args:
             cleanup_callback: Called before OS halt (should do relays-off,
                               serial disconnect, data manager close, etc.)
+            power_latch: PowerLatch instance to release before halt.
             gpio_pin: BCM pin number connected to ignition sense divider
             debounce_seconds: Ignition must be off this long before shutdown
             enable_halt: If True, issue 'sudo shutdown -h now' after cleanup.
                          Set False for desktop development / testing.
         """
         self._cleanup = cleanup_callback
+        self._power_latch = power_latch
         self._pin = gpio_pin
         self._debounce = debounce_seconds
         self._enable_halt = enable_halt
@@ -125,7 +131,7 @@ class IgnitionShutdownManager:
             time.sleep(0.25)
 
     def _initiate_shutdown(self):
-        """Run cleanup and halt the Pi."""
+        """Run cleanup, release power latch, and halt the Pi."""
         if self._shutdown_initiated:
             return
         self._shutdown_initiated = True
@@ -140,6 +146,12 @@ class IgnitionShutdownManager:
         if self._enable_halt:
             print(f"[IGN] Halting system in {HALT_DELAY_SECONDS}s...")
             time.sleep(HALT_DELAY_SECONDS)
+            # Release the power latch — relay drops after OS halt completes
+            # and the GPIO pin goes undefined.  We release explicitly here
+            # so the intent is clear, but the real power-cut happens when
+            # the kernel finishes halt and the pin floats LOW.
+            self._power_latch.release()
             os.system('sudo shutdown -h now')
         else:
+            self._power_latch.release()
             print("[IGN] Halt disabled (dev mode) — shutdown sequence complete")
