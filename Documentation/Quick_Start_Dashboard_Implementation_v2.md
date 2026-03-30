@@ -532,49 +532,31 @@ Buck Converter Output:
    - Ignition ON: Pi should boot
    - Ignition OFF: Pi should shut down (after implementing shutdown script)
 
-### Auto-Shutdown Script
+### Auto-Shutdown & Power Latch
 
-**Purpose:** Gracefully shut down Pi when ignition turns off (prevents SD card corruption)
+**Purpose:** Gracefully shut down Pi when ignition turns off, then cut 12V to the
+buck converter so there is zero parasitic draw.
 
-Create `/home/pi/auto_shutdown.py`:
+This is now built into XJDash itself via `src/core/ignition_monitor.py` and
+`src/core/power_latch.py`. No separate script is needed — the app handles
+ignition detection, cleanup, and power-off automatically.
 
-```python
-#!/usr/bin/env python3
-import RPi.GPIO as GPIO
-import subprocess
-import time
-
-IGNITION_PIN = 17  # GPIO17, connected to 12V ignition signal via voltage divider
-
-# Voltage divider: 12V → 3.3V for GPIO safety
-# Resistor values: 8.2kΩ (top) + 3.3kΩ (bottom)
-
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(IGNITION_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-print("Auto-shutdown script running...")
-
-while True:
-    if GPIO.input(IGNITION_PIN) == GPIO.LOW:
-        print("Ignition OFF detected - shutting down in 10 sec...")
-        time.sleep(10)
-        
-        # Double-check (debounce)
-        if GPIO.input(IGNITION_PIN) == GPIO.LOW:
-            subprocess.call(['sudo', 'shutdown', '-h', 'now'])
-    
-    time.sleep(2)
+**Ignition sense voltage divider (GPIO17):**
 ```
-
-**Auto-start on boot:**
-```bash
-sudo nano /etc/rc.local
+Switched 12V ──[10kΩ]──┬── GPIO17 (pin 11)
+                        │
+                     [4.7kΩ] + [100nF cap]
+                        │
+                       GND
 ```
+Produces ~3.1V at the GPIO pin (safe for 3.3V logic).
 
-Add before `exit 0`:
-```bash
-python3 /home/pi/auto_shutdown.py &
-```
+**Power latch relay (GPIO27):**
+A standard 12V automotive relay holds the buck converter on after the Pi boots.
+When shutdown completes, GPIO27 releases and the relay drops — zero draw.
+
+See `Documentation/Wiring_Schematic.md` for the full circuit diagram,
+pin assignments, and parts list.
 
 ---
 
