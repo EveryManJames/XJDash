@@ -1,0 +1,94 @@
+{
+  "gpio_pin": 18,
+  "num_leds": 30,
+  "max_brightness": 255,
+  "default_brightness": 128,
+  "dma_channel": 10,
+  "frequency": 800000,
+  "invert": false,
+  "default_preset": "solid_amber",
+  "presets": {
+    "off": {
+      "name": "Off",
+      "mode": "solid",
+      "color": [0, 0, 0],
+      "brightness": 0,
+      "icon": "power"
+    },
+    "solid_amber": {
+      "name": "Amber Glow",
+      "mode": "solid",
+      "color": [255, 140, 0],
+      "brightness": 80,
+      "icon": "lightbulb"
+    },
+    "solid_red": {
+      "name": "Red",
+      "mode": "solid",
+      "color": [255, 0, 0],
+      "brightness": 80,
+      "icon": "lightbulb"
+    },
+    "solid_blue": {
+      "name": "Blue",
+      "mode": "solid",
+      "color": [0, 0, 255],
+      "brightness": 80,
+      "icon": "lightbulb"
+    },
+    "solid_green": {
+      "name": "Green",
+      "mode": "solid",
+      "color": [0, 255, 0],
+      "brightness": 80,
+      "icon": "lightbulb"
+    },
+    "solid_white": {
+      "name": "White",
+      "mode": "solid",
+      "color": [255, 255, 255],
+      "brightness": 60,
+      "icon": "lightbulb"
+    },
+    "solid_purple": {
+      "name": "Purple",
+      "mode": "solid",
+      "color": [128, 0, 255],
+      "brightness": 80,
+      "icon": "lightbulb"
+    },
+    "night_red": {
+      "name": "Night Vision",
+      "mode": "solid",
+      "color": [40, 0, 0],
+      "brightness": 30,
+      "icon": "moon"
+    },
+    "trail_amber": {
+      "name": "Trail Amber",
+      "mode": "breathe",
+      "color": [255, 140, 0],
+      "brightness": 100,
+      "speed": 2.0,
+      "icon": "terrain"
+    },
+    "rainbow": {
+      "name": "Rainbow Cycle",
+      "mode": "rainbow",
+      "brightness": 60,
+      "speed": 1.0,
+      "icon": "palette"
+    },
+    "temp_reactive": {
+      "name": "Temp Reactive",
+      "mode": "temp_reactive",
+      "brightness": 80,
+      "cool_color": [0, 100, 255],
+      "warm_color": [255, 140, 0],
+      "hot_color": [255, 0, 0],
+      "cool_temp": 180,
+      "hot_temp": 230,
+      "icon": "thermostat"
+    }
+  }
+}

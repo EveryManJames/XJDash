@@ -24,7 +24,10 @@ Pillow==10.1.0
 adafruit-circuitpython-bno055==5.4.11
 adafruit-blinka==8.25.0
 
-# GPIO - Ignition sense shutdown (Pi only, not installed on desktop)
+# NeoPixel WS2812B LED strip (Pi only, requires root for PWM DMA)
+# rpi_ws281x==5.0.0
+
+# GPIO - Ignition sense shutdown & power latch (Pi only, not installed on desktop)
 # RPi.GPIO==0.7.1
 
 # GPS Support (optional)

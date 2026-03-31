@@ -3,7 +3,7 @@
 **Vehicle:** 1990 Jeep Cherokee XJ
 **Computer:** Raspberry Pi 4 (4GB)
 **Display:** Freenove 4.3" DSI Touchscreen (800x480, portrait)
-**Last Updated:** March 30, 2026
+**Last Updated:** March 31, 2026
 
 ---
 
@@ -18,7 +18,7 @@
   I2C SCL [GPIO3]  | 5   | 6   |  GND
               ----  | 7   | 8   |  ----
                GND  | 9   | 10  |  ----
-  IGN Sense [GPIO17]| 11  | 12  |  ----
+  IGN Sense [GPIO17]| 11  | 12  |  NeoPixel [GPIO18]
   PWR Latch [GPIO27]| 13  | 14  |  GND
               ----  | 15  | 16  |  ----
               3.3V  | 17  | 18  |  ----
@@ -41,6 +41,7 @@
 | GPIO2   | 3        | I2C SDA   | BNO055 data           | BNO055 SDA pin                     |
 | GPIO3   | 5        | I2C SCL   | BNO055 clock          | BNO055 SCL pin                     |
 | GPIO17  | 11       | INPUT     | Ignition sense         | Voltage divider from switched 12V  |
+| GPIO18  | 12       | OUTPUT    | NeoPixel data (PWM0)   | 330Ω → WS2812B strip data in      |
 | GPIO27  | 13       | OUTPUT    | Power latch keep-alive | 1kΩ → 2N2222 base                 |
 
 **All other GPIO pins are unused and available for future expansion.**
@@ -175,6 +176,41 @@
 
 
 ═══════════════════════════════════════════════════════════════════════════════
+                      NEOPIXEL WS2812B LED STRIP (INTERIOR MOOD LIGHTING)
+═══════════════════════════════════════════════════════════════════════════════
+
+    WS2812B "NeoPixel" RGB LED Strip (default: 30 LEDs, configurable)
+
+    Pi Header                LED Strip
+    ─────────                ─────────
+    Pin 12 (GPIO18) ──[330Ω]── Data In (DIN)
+    (do NOT use Pi 5V pin)     5V  ──── Buck converter 5V output
+    Pin 6  (GND)    ────────── GND
+
+    IMPORTANT: Power the strip from the buck converter's 5V output,
+    NOT from the Pi's 5V header pin.  A 30-LED strip can draw up to
+    1.8A at full white — the Pi header can't supply that.
+
+    Components:
+        [330Ω] resistor inline on data line, close to first LED
+        [1000µF] electrolytic capacitor across strip 5V/GND (inrush protection)
+
+    Signal: GPIO18 (PWM0) — uses hardware PWM via DMA for precise timing
+    Library: rpi_ws281x (requires root on Pi for DMA access)
+    Config: src/core/neopixel_config.json (LED count, presets, brightness)
+
+    Lighting Modes:
+        solid          - Static single color (amber, red, blue, green, etc.)
+        breathe        - Gentle fade in/out pulse
+        rainbow        - Rotating rainbow cycle across strip
+        temp_reactive  - Color shifts with coolant temp (blue→amber→red)
+        night_red      - Dim red for night vision preservation
+
+    Strip Placement: Run along footwell, under dash lip, or door sills.
+    Use IP65-rated strip if routing near door seals or floor.
+
+
+═══════════════════════════════════════════════════════════════════════════════
                       REM (RENIX ENGINE MONITOR) CONNECTION
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -294,6 +330,7 @@
                     │             │     [4.7kΩ]+[100nF cap]
                     │             │        │
                     │   Pin 14 ───┼── GND ─┘
+                    │   Pin 12 ───┼── GPIO18 ── [330Ω] ── NeoPixel DIN
                     │   Pin 13 ───┼── GPIO27 ── [1kΩ] ── 2N2222 Base
                     │             │
                     │  USB Ports  │
@@ -333,10 +370,17 @@
     ──────────────
     [ ] Waveshare Modbus RTU 8-Ch Relay Module (B)     ~$30
 
+    INTERIOR LIGHTING
+    ──────────────────
+    [ ] WS2812B NeoPixel LED strip (30 LEDs/meter)     ~$10
+        (IP65-rated if near door seals / floor)
+    [ ] 330Ω resistor (1/4W, data line)                ~$0.05
+    [ ] 1000µF electrolytic capacitor (strip inrush)   ~$0.50
+
     POWER CIRCUIT
     ──────────────
     [ ] DC-DC Buck Converter 12V→5V (5A output)       ~$18
-        (Pololu D36V28F5 or similar)
+        (Pololu D36V28F5 or similar — also powers LEDs)
     [ ] 12V automotive relay (Bosch-style 5-pin SPDT)  ~$3
     [ ] 2N2222 NPN transistor                          ~$0.50
     [ ] 1N4007 rectifier diode (qty 2)                 ~$0.20
@@ -348,7 +392,7 @@
     [ ] 16AWG wire red/black (6ft)                     ~$5
     [ ] USB-C breakout cable (for Pi power)            ~$5
 
-    ESTIMATED TOTAL (excluding REM): ~$227
+    ESTIMATED TOTAL (excluding REM): ~$238
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -362,6 +406,7 @@
       - BNO055 GND
       - Ignition sense voltage divider bottom
       - Power latch relay coil (via transistor to GND)
+      - NeoPixel strip GND
       - Waveshare relay module GND
       - RS485 adapter GND (if applicable — some are USB-powered only)
 
@@ -379,6 +424,7 @@
     src/core/power_latch.py             Power relay         GPIO27 (out)
     src/core/ignition_monitor.py        Ign sense divider   GPIO17 (in)
     src/core/gyro_manager.py            BNO055 IMU          GPIO2/3 (I2C)
+    src/core/neopixel_manager.py        NeoPixel LEDs       GPIO18 (PWM0)
     src/core/serial_manager.py          REM v4+             /dev/ttyACM0
     src/relay/relay_controller.py       Waveshare relay     /dev/ttyUSB0
     main.py                             (orchestrates all of the above)
@@ -391,9 +437,14 @@
     GPIO2  — I2C SDA (BNO055 only)          ✅ No conflict
     GPIO3  — I2C SCL (BNO055 only)          ✅ No conflict
     GPIO17 — Ignition sense INPUT            ✅ No conflict
+    GPIO18 — NeoPixel data OUTPUT (PWM0)     ✅ No conflict
     GPIO27 — Power latch OUTPUT              ✅ No conflict
 
     DSI touchscreen uses dedicated DSI I2C lines (not GPIO2/3).  ✅
+
+    GPIO18 uses PWM channel 0. Audio jack also uses PWM — if you
+    need analog audio output, use HDMI or USB audio instead.
+    (Not relevant for this project — no audio output planned.)   ✅
 
     USB-A ports: 2 of 4 used, 2 available for GPS module,
     keyboard, or other future peripherals.                      ✅

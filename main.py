@@ -34,6 +34,7 @@ Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 from core.serial_manager import SerialManager
 from core.data_manager import DataManager
 from core.gyro_manager import GyroManager
+from core.neopixel_manager import NeoPixelManager
 from core.power_latch import PowerLatch
 from core.ignition_monitor import IgnitionShutdownManager
 from skins.skin_manager import SkinManager
@@ -61,6 +62,7 @@ class XJDashApp(App):
         self.data_manager = DataManager()
         self.serial_manager = SerialManager(self.data_manager)
         self.gyro_manager = GyroManager(self.data_manager)
+        self.neopixel_manager = NeoPixelManager(self.data_manager)
         self.skin_manager = SkinManager()
 
         # Ignition-sense shutdown manager
@@ -104,6 +106,10 @@ class XJDashApp(App):
         # (will use mock data if BNO055 not connected)
         self.gyro_manager.connect()
 
+        # Start NeoPixel LED strip
+        # (uses mock on desktop — no rpi_ws281x)
+        self.neopixel_manager.connect()
+
         # Start ignition sense monitoring
         # (disabled automatically on desktop — no RPi.GPIO)
         self.ignition_monitor.start()
@@ -127,6 +133,7 @@ class XJDashApp(App):
 
         print("🛑 XJDash shutting down...")
         self.ignition_monitor.stop()
+        self.neopixel_manager.disconnect()
         self.serial_manager.disconnect()
         self.gyro_manager.disconnect()
         self.data_manager.close()
