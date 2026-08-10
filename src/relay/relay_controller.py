@@ -191,9 +191,12 @@ class RelayController:
         try:
             coil = self.channels[channel]['coil']
             with self._io_lock:
-                self._client.write_coil(
+                result = self._client.write_coil(
                     coil, state, slave=self.config['slave_address']
                 )
+            if result.isError():
+                print(f"[RELAY] Write failed on CH{channel}: {result}")
+                return False
             self._states[channel] = state
             name = self.channels[channel]['name']
             print(f"[RELAY] CH{channel} ({name}) = {'ON' if state else 'OFF'}")

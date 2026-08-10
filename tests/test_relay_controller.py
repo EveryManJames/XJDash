@@ -51,6 +51,27 @@ def test_disconnect_turns_everything_off():
     assert not rc.get_cached(4)
 
 
+class _FailingWriteClient:
+    """Stub Modbus client whose writes return an error response."""
+
+    class _ErrorResult:
+        def isError(self):
+            return True
+
+    def write_coil(self, coil, state, slave=None):
+        return self._ErrorResult()
+
+
+def test_failed_modbus_write_does_not_update_cache():
+    rc = RelayController()
+    rc._client = _FailingWriteClient()
+    rc._connected = True
+    rc._mock = False
+
+    assert rc.set_relay(5, True) is False
+    assert rc.get_cached(5) is False
+
+
 def test_invalid_channel_rejected():
     rc = make_controller()
     assert rc.set_relay(9, True) is False

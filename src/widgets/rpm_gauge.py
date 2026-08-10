@@ -36,11 +36,11 @@ class RPMArcGauge(FloatLayout):
         self.data_manager = DataManager()
         self._app = None
         self._rpm = 0
-        self._last_rpm = -1
+        self._last_rpm = None  # None = no live data (readout shows '--')
 
         # Digital readout label
         self.rpm_label = Label(
-            text='0',
+            text='--',
             font_size='56sp',
             bold=True,
             halign='center',
@@ -85,6 +85,18 @@ class RPMArcGauge(FloatLayout):
         return (rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, alpha)
 
     def _update(self, dt):
+        from core.data_manager import STALE_AFTER
+        age = self.data_manager.age('RPM')
+        if age is None or age > STALE_AFTER:
+            # No live data — blank the readout rather than freezing the
+            # last engine speed on screen as if it were current.
+            if self._last_rpm is not None:
+                self._rpm = 0
+                self._last_rpm = None
+                self.rpm_label.text = '--'
+                self._redraw()
+            return
+
         rpm = self.data_manager.get('RPM', 0)
         self._rpm = rpm
         if int(rpm) != self._last_rpm:
