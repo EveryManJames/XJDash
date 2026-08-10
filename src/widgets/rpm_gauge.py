@@ -20,9 +20,13 @@ class RPMArcGauge(FloatLayout):
     RPM_MIN = 0
     RPM_MAX = 6000
     REDLINE = 5000
-    ARC_START = 180  # degrees (left)
-    ARC_END = 0      # degrees (right)
+    # Needle math uses standard math angles: 0 RPM = 180deg (west, CCW from east).
+    # Kivy's Line(ellipse=...) instead measures degrees CLOCKWISE FROM NORTH,
+    # so the same top semicircle spans -90 (west) to +90 (east) there.
+    ARC_START = 180  # math degrees (left)
     ARC_SWEEP = 180  # total sweep degrees
+    KIVY_WEST = -90  # arc start in Kivy ellipse degrees
+    KIVY_EAST = 90   # arc end in Kivy ellipse degrees
 
     def __init__(self, **kwargs):
         kwargs.setdefault('size_hint_y', None)
@@ -59,6 +63,14 @@ class RPMArcGauge(FloatLayout):
 
         self.bind(size=self._redraw, pos=self._redraw)
         self._update_event = Clock.schedule_interval(self._update, 1.0 / 15)
+        Clock.schedule_once(self._subscribe_skin, 0)
+
+    def _subscribe_skin(self, *args):
+        try:
+            self.skin.subscribe(self._redraw)
+        except Exception:
+            pass
+        self._redraw()
 
     @property
     def skin(self):
@@ -96,10 +108,13 @@ class RPMArcGauge(FloatLayout):
         radius = min(self.width * 0.42, self.height * 0.65)
         arc_width = 10
 
-        # RPM to angle: 0 RPM = 180 deg (left), 6000 RPM = 0 deg (right)
+        # RPM to angle. Math convention (needle): 0 RPM = 180 deg (left),
+        # 6000 RPM = 0 deg (right). Kivy ellipse convention (arcs): 0 RPM =
+        # -90 (west), 6000 RPM = +90 (east), measured clockwise from north.
         rpm_pct = max(0, min(1, self._rpm / self.RPM_MAX))
         value_angle = self.ARC_START - (rpm_pct * self.ARC_SWEEP)
-        redline_angle = self.ARC_START - ((self.REDLINE / self.RPM_MAX) * self.ARC_SWEEP)
+        value_kivy = self.KIVY_WEST + (rpm_pct * self.ARC_SWEEP)
+        redline_kivy = self.KIVY_WEST + ((self.REDLINE / self.RPM_MAX) * self.ARC_SWEEP)
 
         self.canvas.before.clear()
         with self.canvas.before:
@@ -107,16 +122,16 @@ class RPMArcGauge(FloatLayout):
             Color(*inactive)
             Line(
                 ellipse=(cx - radius, cy - radius, radius * 2, radius * 2,
-                         self.ARC_END, self.ARC_START),
+                         self.KIVY_WEST, self.KIVY_EAST),
                 width=arc_width,
                 cap='round',
             )
 
             # Redline zone (background, dim)
-            Color(*critical, 0.15)
+            Color(*critical[:3], 0.15)
             Line(
                 ellipse=(cx - radius, cy - radius, radius * 2, radius * 2,
-                         self.ARC_END, redline_angle),
+                         redline_kivy, self.KIVY_EAST),
                 width=arc_width,
                 cap='round',
             )
@@ -129,7 +144,7 @@ class RPMArcGauge(FloatLayout):
                     Color(*primary)
                 Line(
                     ellipse=(cx - radius, cy - radius, radius * 2, radius * 2,
-                             value_angle, self.ARC_START),
+                             self.KIVY_WEST, value_kivy),
                     width=arc_width,
                     cap='round',
                 )
@@ -152,10 +167,6 @@ class RPMArcGauge(FloatLayout):
                 tick_pct = tick_rpm / self.RPM_MAX
                 tick_angle = self.ARC_START - (tick_pct * self.ARC_SWEEP)
                 tick_rad = math.radians(tick_angle)
-                label_r = radius + 18
-                lx = cx + label_r * math.cos(tick_rad)
-                ly = cy + label_r * math.sin(tick_rad)
-                # Use small tick marks instead of text labels in canvas
                 inner_r = radius + 4
                 outer_r = radius + 12
                 ix = cx + inner_r * math.cos(tick_rad)
@@ -163,7 +174,7 @@ class RPMArcGauge(FloatLayout):
                 ox = cx + outer_r * math.cos(tick_rad)
                 oy = cy + outer_r * math.sin(tick_rad)
                 if tick_rpm >= self.REDLINE:
-                    Color(*critical, 0.5)
+                    Color(*critical[:3], 0.5)
                 else:
                     Color(*dim)
                 Line(points=[ix, iy, ox, oy], width=1.5, cap='round')

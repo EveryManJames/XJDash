@@ -86,7 +86,6 @@ class TransmissionScreen(BaseScreen):
         lbl = Label(
             text=text,
             font_size='11sp',
-            color=(0.4, 0.27, 0, 1),
             halign='left',
             valign='center',
             size_hint_y=None,
@@ -94,4 +93,5 @@ class TransmissionScreen(BaseScreen):
             padding=[12, 0],
         )
         lbl.bind(size=lbl.setter('text_size'))
+        self.register_skin_label(lbl, 'dim')
         return lbl

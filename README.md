@@ -6,8 +6,8 @@ A modern digital dashboard interface for the Renix Engine Monitor (REM), built w
 
 - 🎨 **Customizable Skins** - Create your own themes with custom colors, fonts, and background images
 - 📊 **Live Engine Data** - Real-time display of all REM parameters via USB serial
-- ⚡ **GPIO Relay Control** - Control AW-4 solenoids, fans, light bars, and more
-- 💾 **Data Logging** - SQLite database logging with CSV export
+- ⚡ **RS485 Relay Control** - Waveshare Modbus RTU 8-channel module for AW-4 solenoids, fans, light bars, and more
+- 💾 **Data Logging** - SQLite database logging with CSV export (planned)
 - 🎯 **Touch-Friendly** - Designed for 4.3" touchscreen in portrait mode
 - 🖼️ **Custom Backgrounds** - Show your girlfriend, dog, or favorite landscape while monitoring engine vitals
 - 📱 **Responsive** - Multiple screens: gauges, transmission, diagnostics, relay control, settings
@@ -18,7 +18,7 @@ A modern digital dashboard interface for the Renix Engine Monitor (REM), built w
 - 4.3" IPS touchscreen (800x480 portrait mode)
 - Renix Engine Monitor (REM) v4+
 - USB cable (REM to Pi)
-- Optional: 8-channel relay module for GPIO control
+- Optional: Waveshare Modbus RTU 8-Ch Relay Module (B) + USB-to-RS485 adapter
 
 ## Quick Start
 
@@ -83,9 +83,9 @@ See [Documentation/Skin_Creation_Guide.md](Documentation/Skin_Creation_Guide.md)
 }
 ```
 
-## GPIO Relay Configuration
+## Relay Configuration
 
-Control up to 8 relays from the touchscreen:
+Control up to 8 relays from the touchscreen via RS485/Modbus RTU:
 
 ```json
 {
@@ -107,8 +107,8 @@ XJDash/
 ├── main.py                  # App entry point
 ├── requirements.txt
 ├── src/                     # Source code
-│   ├── core/               # Serial, data management, logging
-│   ├── gpio/               # Relay control
+│   ├── core/               # Serial, data management
+│   ├── relay/              # RS485/Modbus RTU relay control
 │   ├── skins/              # Skin system
 │   ├── widgets/            # Custom Kivy widgets
 │   └── screens/            # UI screens

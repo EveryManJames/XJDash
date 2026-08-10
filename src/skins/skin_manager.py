@@ -22,6 +22,20 @@ class SkinManager:
         self.skins_dir = skins_dir
         self.current_skin = None
         self.current_skin_data = {}
+        self._listeners = []
+
+    def subscribe(self, callback):
+        """Register a no-arg callback invoked after a new skin loads.
+
+        Widgets that don't continuously poll their colors use this to
+        re-apply skin colors when the user switches themes.
+        """
+        if callback not in self._listeners:
+            self._listeners.append(callback)
+
+    def unsubscribe(self, callback):
+        if callback in self._listeners:
+            self._listeners.remove(callback)
 
     def load_skin(self, skin_name: str) -> bool:
         """
@@ -45,6 +59,13 @@ class SkinManager:
 
             self.current_skin = skin_name
             print(f"✅ Loaded skin: {self.current_skin_data.get('name', skin_name)}")
+
+            for callback in list(self._listeners):
+                try:
+                    callback()
+                except Exception as e:
+                    print(f"⚠️  Skin listener error: {e}")
+
             return True
 
         except Exception as e:

@@ -65,7 +65,7 @@ class SolenoidRow(DashWidget):
     def _update(self, dt):
         rc = self._get_relay_controller()
         if rc:
-            self._is_on = rc.get_relay(self.channel)
+            self._is_on = rc.get_cached(self.channel)
         self._apply_state()
 
     def _get_relay_controller(self):

@@ -4,6 +4,11 @@ Relay Controller - RS485/Modbus RTU interface to Waveshare 8-Ch Relay Module (B)
 Hardware: Waveshare Industrial Modbus RTU 8-Ch Relay Module (B)
 Connection: Pi USB → USB-to-RS485 adapter → 2-wire twisted pair → relay module
 Protocol: Modbus RTU over RS485
+
+Threading model: Modbus serial transactions are slow (9600 baud, blocking),
+so UI widgets must never talk to the bus directly. A background poller
+refreshes all 8 channel states in a single read_coils transaction and the
+UI reads the cache via get_cached(). All bus I/O is serialized by _io_lock.
 """
 
 import time
@@ -30,9 +35,9 @@ DEFAULT_CONFIG = {
 
 # Default relay channel assignments
 DEFAULT_CHANNELS = {
-    1: {'name': 'AW-4 Solenoid 1', 'coil': 0x00, 'enabled': True},
-    2: {'name': 'AW-4 Solenoid 2', 'coil': 0x01, 'enabled': True},
-    3: {'name': 'AW-4 Solenoid 3', 'coil': 0x02, 'enabled': True},
+    1: {'name': 'AW-4 Solenoid A (1-2)', 'coil': 0x00, 'enabled': True},
+    2: {'name': 'AW-4 Solenoid B (2-3)', 'coil': 0x01, 'enabled': True},
+    3: {'name': 'TCC Lockup', 'coil': 0x02, 'enabled': True},
     4: {'name': 'Electric Fan Low', 'coil': 0x03, 'enabled': True},
     5: {'name': 'Electric Fan High', 'coil': 0x04, 'enabled': True},
     6: {'name': 'Light Bar 1', 'coil': 0x05, 'enabled': True},
@@ -42,6 +47,9 @@ DEFAULT_CHANNELS = {
 
 # Minimum time between state changes per channel (seconds)
 MIN_CYCLE_TIME = 1.0
+
+# Background state poll interval (seconds)
+POLL_INTERVAL = 0.25
 
 
 class RelayController:
@@ -60,7 +68,10 @@ class RelayController:
         self._mock = False
         self._states = {ch: False for ch in range(1, 9)}
         self._last_change = {ch: 0.0 for ch in range(1, 9)}
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()      # guards cycle-time bookkeeping
+        self._io_lock = threading.Lock()   # serializes Modbus transactions
+        self._poll_thread = None
+        self._polling = False
 
     @property
     def connected(self):
@@ -91,6 +102,7 @@ class RelayController:
                 self._mock = False
                 print(f"[RELAY] Connected via RS485 on {self.config['port']}")
                 self.all_off()
+                self._start_poller()
                 return True
             else:
                 print(f"[RELAY] Failed to connect on {self.config['port']} — using mock")
@@ -108,9 +120,32 @@ class RelayController:
         self._connected = True
         self._mock = True
 
+    def _start_poller(self):
+        """Start the background state poller (real hardware only —
+        mock reads are instant so the UI reads it directly)."""
+        self._polling = True
+        self._poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
+        self._poll_thread.start()
+
+    def _stop_poller(self):
+        self._polling = False
+        if self._poll_thread:
+            self._poll_thread.join(timeout=2)
+            self._poll_thread = None
+
+    def _poll_loop(self):
+        """Refresh all channel states with one Modbus transaction per cycle."""
+        while self._polling:
+            try:
+                self.get_all_states()
+            except Exception as e:
+                print(f"[RELAY] Poll error: {e}")
+            time.sleep(POLL_INTERVAL)
+
     def disconnect(self):
         """Disconnect from relay module, turning all relays off first."""
         if self._connected:
+            self._stop_poller()
             try:
                 self.all_off()
             except Exception:
@@ -120,13 +155,14 @@ class RelayController:
             self._connected = False
             print("[RELAY] Disconnected")
 
-    def set_relay(self, channel, state):
+    def set_relay(self, channel, state, force=False):
         """
         Set a relay channel on or off.
 
         Args:
             channel: Relay number 1-8
             state: True for ON, False for OFF
+            force: Bypass the minimum cycle time (safety shutdowns only)
 
         Returns:
             True if successful, False otherwise
@@ -142,7 +178,7 @@ class RelayController:
         # Enforce minimum cycle time
         now = time.time()
         with self._lock:
-            if now - self._last_change[channel] < MIN_CYCLE_TIME:
+            if not force and now - self._last_change[channel] < MIN_CYCLE_TIME:
                 print(f"[RELAY] Channel {channel} cycle too fast, ignoring")
                 return False
             self._last_change[channel] = now
@@ -154,9 +190,10 @@ class RelayController:
 
         try:
             coil = self.channels[channel]['coil']
-            self._client.write_coil(
-                coil, state, slave=self.config['slave_address']
-            )
+            with self._io_lock:
+                self._client.write_coil(
+                    coil, state, slave=self.config['slave_address']
+                )
             self._states[channel] = state
             name = self.channels[channel]['name']
             print(f"[RELAY] CH{channel} ({name}) = {'ON' if state else 'OFF'}")
@@ -165,16 +202,29 @@ class RelayController:
             print(f"[RELAY] Error setting CH{channel}: {e}")
             return False
 
+    def get_cached(self, channel):
+        """
+        Read a channel state without touching the bus.
+
+        This is what UI widgets should call — the background poller keeps
+        the cache fresh. On mock, reads the mock directly (instant).
+        """
+        if self._mock and self._client:
+            return self._client.get_relay(channel)
+        return self._states.get(channel, False)
+
     def get_relay(self, channel):
-        """Read the current state of a relay channel."""
+        """Read the current state of a relay channel from the hardware.
+        Blocking — do not call from the UI thread; use get_cached()."""
         if self._mock:
             return self._client.get_relay(channel)
 
         try:
             coil = self.channels[channel]['coil']
-            result = self._client.read_coils(
-                coil, 1, slave=self.config['slave_address']
-            )
+            with self._io_lock:
+                result = self._client.read_coils(
+                    coil, 1, slave=self.config['slave_address']
+                )
             if not result.isError():
                 self._states[channel] = result.bits[0]
                 return result.bits[0]
@@ -184,14 +234,17 @@ class RelayController:
         return self._states.get(channel, False)
 
     def get_all_states(self):
-        """Read all relay states. Returns dict {channel: bool}."""
+        """Read all relay states in one transaction. Returns dict {channel: bool}.
+        Blocking on real hardware — the poller calls this; UI should use
+        get_cached()."""
         if self._mock:
             return {ch: self._client.get_relay(ch) for ch in range(1, 9)}
 
         try:
-            result = self._client.read_coils(
-                0x00, 8, slave=self.config['slave_address']
-            )
+            with self._io_lock:
+                result = self._client.read_coils(
+                    0x00, 8, slave=self.config['slave_address']
+                )
             if not result.isError():
                 for i in range(8):
                     self._states[i + 1] = result.bits[i]
@@ -201,12 +254,13 @@ class RelayController:
         return dict(self._states)
 
     def all_off(self):
-        """Turn all relays off (safety shutdown)."""
+        """Turn all relays off (safety shutdown). Bypasses the minimum
+        cycle time — a shutdown must never leave a channel energized."""
         for ch in range(1, 9):
-            self.set_relay(ch, False)
+            self.set_relay(ch, False, force=True)
         print("[RELAY] All channels OFF")
 
     def toggle(self, channel):
         """Toggle a relay channel."""
-        current = self.get_relay(channel)
+        current = self.get_cached(channel)
         return self.set_relay(channel, not current)

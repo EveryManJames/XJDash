@@ -4,11 +4,10 @@ GearIndicator - AW-4 gear selector display with current gear highlight.
 
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
-from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
+from kivy.graphics import Color, Line, RoundedRectangle
 from kivy.app import App
-from kivy.clock import Clock
 
-from core.data_manager import DataManager
+from widgets.base_widget import DashWidget
 
 
 GEARS = ['P', 'R', 'N', '1', '2', '3', 'OD']
@@ -32,6 +31,9 @@ class GearBox(BoxLayout):
         self.size = (54, 50)
         self.gear_text = gear_text
         self.active = False
+        # Skin colors, pushed in by the parent GearIndicator
+        self._primary = (1, 0.69, 0, 1)
+        self._dim = (0.4, 0.27, 0, 1)
 
         self.label = Label(
             text=gear_text,
@@ -44,31 +46,35 @@ class GearBox(BoxLayout):
         self.add_widget(self.label)
         self.bind(size=self._redraw, pos=self._redraw)
 
-    def set_active(self, active, primary, inactive, dim):
+    def set_colors(self, primary, dim):
+        self._primary = primary
+        self._dim = dim
+        self.label.color = primary if self.active else dim
+        self._redraw()
+
+    def set_active(self, active):
         self.active = active
-        if active:
-            self.label.color = primary
-        else:
-            self.label.color = dim
+        self.label.color = self._primary if active else self._dim
         self._redraw()
 
     def _redraw(self, *args):
+        p = self._primary
+        d = self._dim
         self.canvas.before.clear()
-        # Colors will be set by parent — just use stored state
         with self.canvas.before:
             if self.active:
-                Color(1, 0.69, 0, 0.1)
+                Color(p[0], p[1], p[2], 0.1)
             else:
                 Color(0, 0, 0, 0.5)
             RoundedRectangle(pos=self.pos, size=self.size, radius=[8])
             if self.active:
-                Color(1, 0.69, 0, 1)
+                Color(*p)
             else:
-                Color(0.15, 0.1, 0, 1)
+                Color(d[0], d[1], d[2], 0.5)
             Line(rounded_rectangle=(self.x, self.y, self.width, self.height, 8), width=1.5)
 
 
-class GearIndicator(BoxLayout):
+class GearIndicator(DashWidget):
     """Full gear indicator with gear boxes and current gear display."""
 
     def __init__(self, **kwargs):
@@ -79,8 +85,7 @@ class GearIndicator(BoxLayout):
         kwargs.setdefault('height', 200)
         super().__init__(**kwargs)
 
-        self._app = None
-        self._current_gear = 'N'
+        self._current_gear = None
 
         # Gear boxes row
         gear_row = BoxLayout(
@@ -102,10 +107,9 @@ class GearIndicator(BoxLayout):
 
         # Current gear large display
         self.current_label = Label(
-            text='N',
+            text='--',
             font_size='52sp',
             bold=True,
-            color=(1, 0.69, 0, 1),
             halign='center',
             valign='center',
             size_hint_y=0.55,
@@ -117,7 +121,6 @@ class GearIndicator(BoxLayout):
         self.subtitle = Label(
             text='CURRENT GEAR',
             font_size='11sp',
-            color=(0.4, 0.27, 0, 1),
             halign='center',
             valign='top',
             size_hint_y=0.15,
@@ -125,29 +128,33 @@ class GearIndicator(BoxLayout):
         self.subtitle.bind(size=self.subtitle.setter('text_size'))
         self.add_widget(self.subtitle)
 
-        self._update_event = Clock.schedule_interval(self._update, 0.2)
+        self._watch_skin(self._apply_skin)
+        self._schedule_update(hz=5)
 
     def _get_relay_controller(self):
-        if self._app is None:
-            self._app = App.get_running_app()
-        return getattr(self._app, 'relay_controller', None)
+        app = App.get_running_app()
+        return getattr(app, 'relay_controller', None)
+
+    def _apply_skin(self, *args):
+        primary = self._c('primary')
+        dim = self._c('dim')
+        self.current_label.color = primary
+        self.subtitle.color = self._c('dim')
+        for gb in self._gear_boxes.values():
+            gb.set_colors(primary, dim)
 
     def _update(self, dt):
         rc = self._get_relay_controller()
         if not rc:
             return
 
-        sol_a = rc.get_relay(1)
-        sol_b = rc.get_relay(2)
+        sol_a = rc.get_cached(1)
+        sol_b = rc.get_cached(2)
         key = (sol_a, sol_b)
         gear_short, gear_display = GEAR_MAP.get(key, ('N', 'NEUTRAL'))
 
         if gear_short != self._current_gear:
             self._current_gear = gear_short
             self.current_label.text = gear_display
-
-            primary = (1, 0.69, 0, 1)
-            inactive = (0.04, 0.03, 0, 1)
-            dim = (0.15, 0.1, 0, 1)
             for gear, gb in self._gear_boxes.items():
-                gb.set_active(gear == gear_short, primary, inactive, dim)
+                gb.set_active(gear == gear_short)

@@ -99,6 +99,10 @@ class SerialManager:
 
     def _read_loop(self):
         """Background thread that reads serial data"""
+        # Measured line rate, published as '_rem_hz' for diagnostics
+        rate_count = 0
+        rate_window_start = time.time()
+
         while self.running:
             try:
                 if self.use_mock:
@@ -117,6 +121,14 @@ class SerialManager:
                 if data:
                     for key, value in data.items():
                         self.data_manager.update(key, value)
+
+                    rate_count += 1
+                    now = time.time()
+                    elapsed = now - rate_window_start
+                    if elapsed >= 1.0:
+                        self.data_manager.update('_rem_hz', rate_count / elapsed)
+                        rate_count = 0
+                        rate_window_start = now
 
             except Exception as e:
                 print(f"⚠️  Serial read error: {e}")

@@ -55,6 +55,7 @@ class BarGauge(DashWidget):
         self.add_widget(self.track)
 
         self._fill_pct = 0
+        self._watch_skin(self._redraw_bar)
         self._schedule_update(hz=10)
 
     def _update(self, dt):

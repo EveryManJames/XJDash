@@ -15,6 +15,8 @@ Usage:
 
 import math
 from kivy.graphics import Line, Ellipse, Rectangle, Triangle
+from kivy.graphics import Color as KivyColor
+from kivy.uix.widget import Widget
 
 
 # ─── Drawing Helpers ───────────────────────────────────────────────
@@ -734,6 +736,37 @@ def draw_icon(name, cx, cy, size):
 def get_icon_names():
     """Return sorted list of all available icon names."""
     return sorted(ICONS.keys())
+
+
+class IconWidget(Widget):
+    """Widget that draws a Canvas icon at its center.
+
+    Set color with set_color() — a Kivy-normalized RGBA tuple.
+    """
+
+    def __init__(self, icon_name='power', scale=0.7, **kwargs):
+        super().__init__(**kwargs)
+        self.icon_name = icon_name
+        self.scale = scale
+        self._color = (1, 0.69, 0, 1)
+        self.bind(size=self._redraw, pos=self._redraw)
+
+    def set_icon(self, name):
+        self.icon_name = name
+        self._redraw()
+
+    def set_color(self, color):
+        self._color = color
+        self._redraw()
+
+    def _redraw(self, *args):
+        self.canvas.clear()
+        with self.canvas:
+            KivyColor(*self._color)
+            cx = self.x + self.width / 2
+            cy = self.y + self.height / 2
+            icon_size = min(self.width, self.height) * self.scale
+            draw_icon(self.icon_name, cx, cy, icon_size)
 
 
 def get_icon_count():

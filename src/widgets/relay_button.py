@@ -5,40 +5,11 @@ Uses Canvas-drawn icons from the icon library.
 
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.label import Label
-from kivy.uix.widget import Widget
 from kivy.app import App
 from kivy.graphics import Color, Line, RoundedRectangle
 
 from widgets.base_widget import DashWidget
-from widgets.icons import draw_icon
-
-
-class IconWidget(Widget):
-    """Widget that draws a Canvas icon at its center."""
-
-    def __init__(self, icon_name='power', **kwargs):
-        kwargs.setdefault('size_hint_y', 0.35)
-        super().__init__(**kwargs)
-        self.icon_name = icon_name
-        self._color = (1, 0.69, 0, 1)
-        self.bind(size=self._redraw, pos=self._redraw)
-
-    def set_icon(self, name):
-        self.icon_name = name
-        self._redraw()
-
-    def set_color(self, color):
-        self._color = color
-        self._redraw()
-
-    def _redraw(self, *args):
-        self.canvas.clear()
-        with self.canvas:
-            Color(*self._color)
-            cx = self.x + self.width / 2
-            cy = self.y + self.height / 2
-            icon_size = min(self.width, self.height) * 0.7
-            draw_icon(self.icon_name, cx, cy, icon_size)
+from widgets.icons import IconWidget
 
 
 class RelayButton(ButtonBehavior, DashWidget):
@@ -57,7 +28,7 @@ class RelayButton(ButtonBehavior, DashWidget):
         self._icon_name = icon_name
 
         # Canvas-drawn icon
-        self.icon_widget = IconWidget(icon_name=icon_name)
+        self.icon_widget = IconWidget(icon_name=icon_name, size_hint_y=0.35)
 
         # Name
         self.name_label = Label(
@@ -90,6 +61,7 @@ class RelayButton(ButtonBehavior, DashWidget):
 
         self.bind(size=self._redraw, pos=self._redraw)
         self.bind(on_press=self._on_toggle)
+        self._watch_skin(self._redraw)
         self._schedule_update(hz=5)
 
     def set_icon(self, icon_name):
@@ -109,8 +81,10 @@ class RelayButton(ButtonBehavior, DashWidget):
     def _update(self, dt):
         rc = self._get_relay_controller()
         if rc:
-            self._is_on = rc.get_relay(self.channel)
-        self._redraw()
+            is_on = rc.get_cached(self.channel)
+            if is_on != self._is_on:
+                self._is_on = is_on
+                self._redraw()
 
     def _redraw(self, *args):
         primary = self._c('primary')

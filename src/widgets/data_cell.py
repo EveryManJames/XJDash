@@ -77,24 +77,22 @@ class DataCell(DashWidget):
             except (ValueError, TypeError):
                 self.value_label.text = str(val)
 
-            # Determine color based on thresholds
-            color = self._c('primary')
-            if self.critical_threshold is not None:
-                if (not self.warn_below and val >= self.critical_threshold) or \
-                   (self.warn_below and val <= self.critical_threshold):
-                    color = self._c('critical')
-                elif self.warning_threshold is not None:
-                    if (not self.warn_below and val >= self.warning_threshold) or \
-                       (self.warn_below and val <= self.warning_threshold):
-                        color = self._c('warning')
+        # Colors every tick so threshold state and skin changes both apply
+        color = self._c('primary')
+        if self.critical_threshold is not None:
+            if (not self.warn_below and val >= self.critical_threshold) or \
+               (self.warn_below and val <= self.critical_threshold):
+                color = self._c('critical')
             elif self.warning_threshold is not None:
                 if (not self.warn_below and val >= self.warning_threshold) or \
                    (self.warn_below and val <= self.warning_threshold):
                     color = self._c('warning')
+        elif self.warning_threshold is not None:
+            if (not self.warn_below and val >= self.warning_threshold) or \
+               (self.warn_below and val <= self.warning_threshold):
+                color = self._c('warning')
 
-            self.value_label.color = color
-
-        # Static colors
+        self.value_label.color = color
         self.name_label.color = self._c('dim')
         self.unit_label.color = self._c('secondary')
 

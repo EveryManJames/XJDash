@@ -45,11 +45,11 @@ class RelayControlScreen(BaseScreen):
         footer = Label(
             text='WAVESHARE 8-CH \u2022 ADDR 01 \u2022 RS485 @ 9600',
             font_size='10sp',
-            color=(0.4, 0.27, 0, 1),
             size_hint_y=None,
             height=30,
             halign='center',
             valign='center',
         )
         footer.bind(size=footer.setter('text_size'))
+        self.register_skin_label(footer, 'dim')
         self.content.add_widget(footer)

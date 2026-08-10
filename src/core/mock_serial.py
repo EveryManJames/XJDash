@@ -40,6 +40,9 @@ class MockREMSerial:
         Returns:
             Space-delimited string matching REM Normal mode output
         """
+        # Block like a real serial readline would — without this the
+        # reader thread busy-spins at 100% of a core.
+        time.sleep(0.25)
         self.sim_time += 0.25  # 250ms between frames
         self.timestamp += 250
 
