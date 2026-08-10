@@ -13,12 +13,9 @@ import sys
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from kivy.app import App
 from kivy.config import Config
-from kivy.core.window import Window
-from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 
-# Configure Kivy for portrait mode touchscreen
+# Configure Kivy for portrait mode touchscreen (MUST be before Window import)
 Config.set('graphics', 'width', '480')
 Config.set('graphics', 'height', '800')
 Config.set('graphics', 'resizable', False)
@@ -30,14 +27,20 @@ Config.set('graphics', 'resizable', False)
 Config.set('graphics', 'maxfps', '30')
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
+from kivy.app import App
+from kivy.core.window import Window
+from kivy.uix.screenmanager import ScreenManager, NoTransition
+
 from core.serial_manager import SerialManager
 from core.data_manager import DataManager
 from skins.skin_manager import SkinManager
+from relay.relay_controller import RelayController
 
-# Import screens (we'll create these)
-# from screens.main_screen import MainGaugeScreen
-# from screens.relay_screen import RelayControlScreen
-# from screens.settings_screen import SettingsScreen
+from screens.main_gauges_screen import MainGaugesScreen
+from screens.relay_control_screen import RelayControlScreen
+from screens.transmission_screen import TransmissionScreen
+from screens.diagnostics_screen import DiagnosticsScreen
+from screens.settings_screen import SettingsScreen
 
 
 class XJDashApp(App):
@@ -45,15 +48,13 @@ class XJDashApp(App):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.title = "XJDash - Jeep Cherokee Digital Dashboard"
+        self.title = "XJDash"
 
         # Core managers
         self.data_manager = DataManager()
         self.serial_manager = SerialManager(self.data_manager)
         self.skin_manager = SkinManager()
-
-        # Screen manager
-        self.screen_manager = None
+        self.relay_controller = RelayController()
 
     def build(self):
         """Build the application UI"""
@@ -61,35 +62,42 @@ class XJDashApp(App):
         # Load default skin
         self.skin_manager.load_skin('default_amber')
 
-        # Create screen manager
-        self.screen_manager = ScreenManager(transition=SlideTransition())
+        # Connect relay controller (falls back to mock on desktop)
+        self.relay_controller.connect()
 
-        # Add screens (placeholder for now)
-        # self.screen_manager.add_widget(MainGaugeScreen(name='main'))
-        # self.screen_manager.add_widget(RelayControlScreen(name='relay'))
-        # self.screen_manager.add_widget(SettingsScreen(name='settings'))
+        # Create screen manager with instant transitions
+        sm = ScreenManager(transition=NoTransition())
 
-        # Temporary placeholder screen
-        placeholder = Screen(name='placeholder')
-        self.screen_manager.add_widget(placeholder)
+        # Add all screens
+        sm.add_widget(MainGaugesScreen(
+            name='gauges', screen_name='gauges',
+            title='XJDASH', screen_manager=sm))
+        sm.add_widget(TransmissionScreen(
+            name='transmission', screen_name='transmission',
+            title='AW-4 TRANS', screen_manager=sm))
+        sm.add_widget(RelayControlScreen(
+            name='relay', screen_name='relay',
+            title='RELAY CTRL', screen_manager=sm))
+        sm.add_widget(DiagnosticsScreen(
+            name='diagnostics', screen_name='diagnostics',
+            title='DIAGNOSTICS', screen_manager=sm))
+        sm.add_widget(SettingsScreen(
+            name='settings', screen_name='settings',
+            title='SETTINGS', screen_manager=sm))
 
-        return self.screen_manager
+        sm.current = 'gauges'
+        return sm
 
     def on_start(self):
         """Called when app starts"""
-        print("🚙 XJDash starting...")
-
-        # Start serial connection to REM
-        # (will use mock data if REM not connected)
+        print("XJDash starting...")
         self.serial_manager.connect()
-
-        print("✅ XJDash ready!")
+        print("XJDash ready!")
 
     def on_stop(self):
         """Called when app stops"""
-        print("🛑 XJDash stopping...")
-
-        # Clean shutdown
+        print("XJDash stopping...")
+        self.relay_controller.disconnect()
         self.serial_manager.disconnect()
         self.data_manager.close()
 
