@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Share+Tech+Mono&family=VT323&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-wrap: wrap; gap: 40px; padding: 40px; justify-content: center; font-family: sans-serif; }
+
+  .phone-frame {
+    width: 520px;
+    background: #222;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .phone-frame .label {
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .screen {
+    width: 480px;
+    height: 800px;
+    overflow: hidden;
+    position: relative;
+    border-radius: 8px;
+    border: 1px solid #333;
+  }
+
+  /* ============ AMBER MAIN GAUGES ============ */
+  .amber-main {
+    background: #000;
+    font-family: 'Share Tech Mono', monospace;
+    color: #ffb000;
+  }
+  .amber-main .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #332800;
+  }
+  .amber-main .header .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #ffb000;
+  }
+  .amber-main .header .status {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 11px;
+    color: #664400;
+  }
+  .amber-main .header .status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00cc00;
+    box-shadow: 0 0 6px #00cc00;
+  }
+
+  /* RPM Arc Gauge */
+  .rpm-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0 10px;
+  }
+  .rpm-arc {
+    position: relative;
+    width: 320px;
+    height: 180px;
+    overflow: hidden;
+  }
+  .rpm-arc svg { width: 320px; height: 180px; }
+  .rpm-value {
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 64px;
+    font-weight: 900;
+    color: #ffb000;
+    text-shadow: 0 0 20px rgba(255,176,0,0.4);
+  }
+  .rpm-label {
+    font-size: 13px;
+    color: #664400;
+    letter-spacing: 3px;
+    margin-top: 2px;
+  }
+
+  /* Data grid */
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    padding: 8px 12px;
+  }
+  .data-cell {
+    background: #0a0800;
+    border: 1px solid #1a1200;
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+  }
+  .data-cell .cell-label {
+    font-size: 11px;
+    color: #664400;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .data-cell .cell-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffb000;
+    line-height: 1;
+  }
+  .data-cell .cell-unit {
+    font-size: 11px;
+    color: #995c00;
+    margin-top: 2px;
+  }
+  .data-cell.warning .cell-value { color: #ff6600; }
+  .data-cell.critical .cell-value { color: #ff0000; text-shadow: 0 0 8px rgba(255,0,0,0.5); }
+
+  /* Bar gauges */
+  .bar-section {
+    padding: 6px 12px;
+  }
+  .bar-gauge {
+    margin-bottom: 8px;
+  }
+  .bar-gauge .bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #664400;
+    margin-bottom: 3px;
+    letter-spacing: 1px;
+  }
+  .bar-gauge .bar-track {
+    height: 14px;
+    background: #0a0800;
+    border: 1px solid #1a1200;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-gauge .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #664400, #ffb000);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .bar-gauge .bar-fill.hot {
+    background: linear-gradient(90deg, #ffb000, #ff6600, #ff0000);
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background: #0a0800;
+    border-top: 1px solid #332800;
+    height: 56px;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 9px;
+    color: #664400;
+    letter-spacing: 1px;
+  }
+  .nav-btn.active {
+    color: #ffb000;
+    background: rgba(255,176,0,0.05);
+  }
+  .nav-btn .nav-icon {
+    font-size: 20px;
+  }
+
+  /* ============ AMBER RELAY CONTROL ============ */
+  .relay-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+  .relay-btn {
+    background: #0a0800;
+    border: 2px solid #1a1200;
+    border-radius: 10px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 120px;
+    justify-content: center;
+  }
+  .relay-btn.on {
+    border-color: #ffb000;
+    background: rgba(255,176,0,0.08);
+    box-shadow: 0 0 15px rgba(255,176,0,0.15);
+  }
+  .relay-btn .relay-icon { font-size: 28px; }
+  .relay-btn .relay-name {
+    font-size: 13px;
+    color: #ffb000;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .relay-btn .relay-state {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 4px;
+    letter-spacing: 2px;
+  }
+  .relay-btn.on .relay-state {
+    background: rgba(255,176,0,0.2);
+    color: #ffb000;
+  }
+  .relay-btn.off .relay-state {
+    background: rgba(102,68,0,0.15);
+    color: #332800;
+  }
+  .relay-btn .relay-amps {
+    font-size: 10px;
+    color: #664400;
+  }
+
+  /* ============ GREEN VFD MAIN ============ */
+  .green-main {
+    background: #000f00;
+    font-family: 'VT323', monospace;
+    color: #00ff00;
+    position: relative;
+  }
+  .green-main::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.1) 2px,
+      rgba(0,0,0,0.1) 4px
+    );
+    pointer-events: none;
+  }
+  .green-main .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #003300;
+  }
+  .green-main .header .title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0,255,0,0.3);
+  }
+  .green-main .header .status {
+    font-size: 14px;
+    color: #006600;
+  }
+  .green-main .header .status .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+    margin-right: 6px;
+  }
+
+  .green-rpm {
+    text-align: center;
+    padding: 20px 0 8px;
+  }
+  .green-rpm .rpm-big {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 80px;
+    font-weight: 900;
+    color: #00ff00;
+    text-shadow: 0 0 30px rgba(0,255,0,0.4);
+    line-height: 1;
+  }
+  .green-rpm .rpm-lbl {
+    font-size: 16px;
+    color: #006600;
+    letter-spacing: 4px;
+  }
+
+  /* Green segmented bars */
+  .green-bar-section { padding: 6px 16px; }
+  .green-bar {
+    margin-bottom: 10px;
+  }
+  .green-bar .gb-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    color: #008800;
+    margin-bottom: 4px;
+  }
+  .green-bar .gb-header .gb-val {
+    color: #00ff00;
+    text-shadow: 0 0 6px rgba(0,255,0,0.3);
+  }
+  .green-bar .gb-track {
+    height: 18px;
+    display: flex;
+    gap: 2px;
+  }
+  .green-bar .gb-seg {
+    flex: 1;
+    background: #001a00;
+    border-radius: 2px;
+  }
+  .green-bar .gb-seg.lit {
+    background: #00cc00;
+    box-shadow: 0 0 4px rgba(0,255,0,0.3);
+  }
+  .green-bar .gb-seg.warn {
+    background: #cccc00;
+    box-shadow: 0 0 4px rgba(255,255,0,0.3);
+  }
+  .green-bar .gb-seg.crit {
+    background: #ff6600;
+    box-shadow: 0 0 4px rgba(255,100,0,0.3);
+  }
+
+  /* Green data rows */
+  .green-data {
+    padding: 4px 16px;
+  }
+  .green-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #001a00;
+    font-size: 20px;
+  }
+  .green-row .gr-label { color: #006600; }
+  .green-row .gr-value {
+    color: #00ff00;
+    text-shadow: 0 0 6px rgba(0,255,0,0.2);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+  }
+
+  .green-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background: #000800;
+    border-top: 1px solid #003300;
+    height: 56px;
+    z-index: 2;
+  }
+  .green-nav .nav-btn {
+    color: #006600;
+  }
+  .green-nav .nav-btn.active {
+    color: #00ff00;
+    text-shadow: 0 0 6px rgba(0,255,0,0.3);
+    background: rgba(0,255,0,0.03);
+  }
+
+  /* ============ TRANSMISSION SCREEN ============ */
+  .trans-section {
+    padding: 10px 12px;
+  }
+  .gear-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px 0 15px;
+  }
+  .gear-box {
+    width: 54px;
+    height: 54px;
+    border: 2px solid #1a1200;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #332800;
+    background: #0a0800;
+  }
+  .gear-box.active {
+    border-color: #ffb000;
+    color: #ffb000;
+    background: rgba(255,176,0,0.1);
+    box-shadow: 0 0 15px rgba(255,176,0,0.2);
+  }
+
+  .solenoid-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #0a0800;
+    border: 1px solid #1a1200;
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+  .solenoid-row .sol-name {
+    font-size: 14px;
+    color: #ffb000;
+    letter-spacing: 1px;
+  }
+  .solenoid-row .sol-status {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 4px;
+    letter-spacing: 2px;
+  }
+  .solenoid-row .sol-status.engaged {
+    background: rgba(255,176,0,0.2);
+    color: #ffb000;
+  }
+  .solenoid-row .sol-status.off {
+    background: rgba(102,68,0,0.1);
+    color: #332800;
+  }
+  .solenoid-row .sol-amps {
+    font-size: 11px;
+    color: #664400;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  .trans-data-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a1200;
+    font-size: 13px;
+  }
+  .trans-data-row .td-label { color: #664400; letter-spacing: 1px; }
+  .trans-data-row .td-value {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    color: #ffb000;
+  }
+
+  /* ============ DIAGNOSTICS ============ */
+  .diag-section { padding: 10px 12px; }
+  .diag-card {
+    background: #0a0800;
+    border: 1px solid #1a1200;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .diag-card .dc-title {
+    font-size: 12px;
+    color: #664400;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1a1200;
+  }
+  .diag-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .diag-row .dr-label { color: #995c00; }
+  .diag-row .dr-value { color: #ffb000; font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 500; }
+  .diag-row .dr-value.good { color: #00cc00; }
+  .diag-row .dr-value.warn { color: #ff6600; }
+  .diag-row .dr-value.err { color: #ff0000; }
+
+  .fault-code {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255,0,0,0.05);
+    border: 1px solid rgba(255,0,0,0.2);
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .fault-code .fc-code {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ff4444;
+    min-width: 50px;
+  }
+  .fault-code .fc-desc {
+    font-size: 12px;
+    color: #cc8800;
+  }
+  .no-faults {
+    text-align: center;
+    padding: 15px;
+    color: #00cc00;
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+body { background: #000; display: flex; justify-content: center; align-items: flex-start; padding: 0; margin: 0; }
+.phone-frame { padding: 0; background: none; box-shadow: none; border-radius: 0; width: 480px; }
+.screen { border-radius: 0; border: none; }
+</style></head><body>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Show only screen 1
+  var frames = document.querySelectorAll('.phone-frame');
+  frames.forEach(function(f, idx) {
+    if (idx !== 1) f.style.display = 'none';
+  });
+});
+</script>
+
+
+<!-- ===== SCREEN 1: AMBER MAIN GAUGES ===== -->
+<div class="phone-frame">
+  <div class="label">MAIN GAUGES &mdash; 1990 AMBER LCD SKIN</div>
+  <div class="screen amber-main">
+    <div class="header">
+      <div class="title">XJDASH</div>
+      <div class="status"><div class="dot"></div> REM CONNECTED</div>
+    </div>
+
+    <div class="rpm-section">
+      <div class="rpm-arc">
+        <svg viewBox="0 0 320 180">
+          <!-- Arc track -->
+          <path d="M 30 170 A 140 140 0 0 1 290 170" fill="none" stroke="#1a1200" stroke-width="16" stroke-linecap="round"/>
+          <!-- Arc fill -->
+          <path d="M 30 170 A 140 140 0 0 1 210 32" fill="none" stroke="#ffb000" stroke-width="16" stroke-linecap="round"/>
+          <!-- Redline zone -->
+          <path d="M 250 55 A 140 140 0 0 1 290 170" fill="none" stroke="#ff0000" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+          <!-- Tick marks -->
+          <text x="22" y="168" fill="#664400" font-size="11" font-family="Orbitron">0</text>
+          <text x="28" y="70" fill="#664400" font-size="11" font-family="Orbitron">2</text>
+          <text x="140" y="28" fill="#664400" font-size="11" font-family="Orbitron">3</text>
+          <text x="253" y="62" fill="#664400" font-size="11" font-family="Orbitron">5</text>
+          <text x="280" y="168" fill="#ff0000" font-size="11" font-family="Orbitron">6</text>
+          <!-- Needle -->
+          <line x1="160" y1="170" x2="195" y2="42" stroke="#ffb000" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="160" cy="170" r="6" fill="#ffb000"/>
+        </svg>
+        <div class="rpm-value">2850</div>
+      </div>
+      <div class="rpm-label">RPM &times; 1000</div>
+    </div>
+
+    <div class="data-grid">
+      <div class="data-cell">
+        <div class="cell-label">COOLANT</div>
+        <div class="cell-value">198</div>
+        <div class="cell-unit">&deg;F</div>
+      </div>
+      <div class="data-cell">
+        <div class="cell-label">BATTERY</div>
+        <div class="cell-value">14.2</div>
+        <div class="cell-unit">VOLTS</div>
+      </div>
+      <div class="data-cell">
+        <div class="cell-label">MAP</div>
+        <div class="cell-value">18.2</div>
+        <div class="cell-unit">inHg VAC</div>
+      </div>
+      <div class="data-cell">
+        <div class="cell-label">TPS</div>
+        <div class="cell-value">22</div>
+        <div class="cell-unit">% OPEN</div>
+      </div>
+      <div class="data-cell">
+        <div class="cell-label">O2 SENSOR</div>
+        <div class="cell-value">0.72</div>
+        <div class="cell-unit">VOLTS &bull; RICH</div>
+      </div>
+      <div class="data-cell">
+        <div class="cell-label">INJ PULSE</div>
+        <div class="cell-value">4.8</div>
+        <div class="cell-unit">ms &bull; 18% DC</div>
+      </div>
+    </div>
+
+    <div class="bar-section">
+      <div class="bar-gauge">
+        <div class="bar-header"><span>COOLANT TEMP</span><span>198&deg;F</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:62%"></div></div>
+      </div>
+      <div class="bar-gauge">
+        <div class="bar-header"><span>INTAKE AIR</span><span>82&deg;F</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:35%"></div></div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-btn active"><div class="nav-icon">&#x1F3AF;</div>GAUGES</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;&#xFE0F;</div>TRANS</div>
+      <div class="nav-btn"><div class="nav-icon">&#x26A1;</div>RELAY</div>
+      <div class="nav-btn"><div class="nav-icon">&#x1F6E0;</div>DIAG</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;</div>SET</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 2: RELAY CONTROL ===== -->
+<div class="phone-frame">
+  <div class="label">RELAY CONTROL &mdash; 1990 AMBER LCD SKIN</div>
+  <div class="screen amber-main">
+    <div class="header">
+      <div class="title">RELAY CTRL</div>
+      <div class="status"><div class="dot"></div> MODBUS OK</div>
+    </div>
+
+    <div class="relay-grid">
+      <div class="relay-btn on">
+        <div class="relay-icon">&#x1F32C;&#xFE0F;</div>
+        <div class="relay-name">ELECTRIC FAN</div>
+        <div class="relay-state">ON</div>
+        <div class="relay-amps">4.2A &bull; AUTO @ 210&deg;F</div>
+      </div>
+      <div class="relay-btn off">
+        <div class="relay-icon">&#x1F4A1;</div>
+        <div class="relay-name">LIGHT BAR</div>
+        <div class="relay-state">OFF</div>
+        <div class="relay-amps">0.0A &bull; MANUAL</div>
+      </div>
+      <div class="relay-btn on">
+        <div class="relay-icon">&#x2699;&#xFE0F;</div>
+        <div class="relay-name">SOL A (1-2)</div>
+        <div class="relay-state">ON</div>
+        <div class="relay-amps">0.8A &bull; AW-4 AUTO</div>
+      </div>
+      <div class="relay-btn off">
+        <div class="relay-icon">&#x2699;&#xFE0F;</div>
+        <div class="relay-name">SOL B (2-3)</div>
+        <div class="relay-state">OFF</div>
+        <div class="relay-amps">0.0A &bull; AW-4 AUTO</div>
+      </div>
+      <div class="relay-btn off">
+        <div class="relay-icon">&#x1F50C;</div>
+        <div class="relay-name">AUX 1</div>
+        <div class="relay-state">OFF</div>
+        <div class="relay-amps">0.0A &bull; MANUAL</div>
+      </div>
+      <div class="relay-btn off">
+        <div class="relay-icon">&#x1F50C;</div>
+        <div class="relay-name">AUX 2</div>
+        <div class="relay-state">OFF</div>
+        <div class="relay-amps">0.0A &bull; MANUAL</div>
+      </div>
+      <div class="relay-btn off">
+        <div class="relay-icon">&#x1F50C;</div>
+        <div class="relay-name">AUX 3</div>
+        <div class="relay-state">OFF</div>
+        <div class="relay-amps">0.0A &bull; MANUAL</div>
+      </div>
+      <div class="relay-btn off">
+        <div class="relay-icon">&#x1F50C;</div>
+        <div class="relay-name">AUX 4</div>
+        <div class="relay-state">OFF</div>
+        <div class="relay-amps">0.0A &bull; MANUAL</div>
+      </div>
+    </div>
+
+    <div style="padding:12px; text-align:center; font-size:11px; color:#664400; letter-spacing:1px;">
+      WAVESHARE 8-CH &bull; ADDR 01 &bull; RS485 @ 9600
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-btn"><div class="nav-icon">&#x1F3AF;</div>GAUGES</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;&#xFE0F;</div>TRANS</div>
+      <div class="nav-btn active"><div class="nav-icon">&#x26A1;</div>RELAY</div>
+      <div class="nav-btn"><div class="nav-icon">&#x1F6E0;</div>DIAG</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;</div>SET</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 3: GREEN VFD MAIN ===== -->
+<div class="phone-frame">
+  <div class="label">MAIN GAUGES &mdash; GREEN VFD SKIN</div>
+  <div class="screen green-main">
+    <div class="header">
+      <div class="title">XJDASH</div>
+      <div class="status"><span class="dot"></span> REM OK</div>
+    </div>
+
+    <div class="green-rpm">
+      <div class="rpm-big">2850</div>
+      <div class="rpm-lbl">R P M</div>
+    </div>
+
+    <!-- Segmented RPM bar -->
+    <div class="green-bar-section">
+      <div class="green-bar">
+        <div class="gb-header"><span>RPM</span><span class="gb-val">2850</span></div>
+        <div class="gb-track">
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+        </div>
+      </div>
+      <div class="green-bar">
+        <div class="gb-header"><span>COOLANT</span><span class="gb-val">198&deg;F</span></div>
+        <div class="gb-track">
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+        </div>
+      </div>
+      <div class="green-bar">
+        <div class="gb-header"><span>TPS</span><span class="gb-val">22%</span></div>
+        <div class="gb-track">
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+        </div>
+      </div>
+      <div class="green-bar">
+        <div class="gb-header"><span>BATTERY</span><span class="gb-val">14.2V</span></div>
+        <div class="gb-track">
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg lit"></div>
+          <div class="gb-seg lit"></div><div class="gb-seg lit"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div>
+          <div class="gb-seg"></div><div class="gb-seg"></div><div class="gb-seg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="green-data">
+      <div class="green-row"><span class="gr-label">MAP VACUUM</span><span class="gr-value">18.2 inHg</span></div>
+      <div class="green-row"><span class="gr-label">O2 SENSOR</span><span class="gr-value">0.72V</span></div>
+      <div class="green-row"><span class="gr-label">INJ PULSE</span><span class="gr-value">4.8ms</span></div>
+      <div class="green-row"><span class="gr-label">INTAKE AIR</span><span class="gr-value">82&deg;F</span></div>
+      <div class="green-row"><span class="gr-label">FUEL TRIM</span><span class="gr-value">+2.1%</span></div>
+      <div class="green-row"><span class="gr-label">IGN TIMING</span><span class="gr-value">22&deg; BTDC</span></div>
+      <div class="green-row"><span class="gr-label">AFR</span><span class="gr-value">14.4:1</span></div>
+    </div>
+
+    <div class="green-nav">
+      <div class="nav-btn active"><div class="nav-icon">&#x1F3AF;</div>GAUGES</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;&#xFE0F;</div>TRANS</div>
+      <div class="nav-btn"><div class="nav-icon">&#x26A1;</div>RELAY</div>
+      <div class="nav-btn"><div class="nav-icon">&#x1F6E0;</div>DIAG</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;</div>SET</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 4: TRANSMISSION ===== -->
+<div class="phone-frame">
+  <div class="label">TRANSMISSION &mdash; AW-4 CONTROL</div>
+  <div class="screen amber-main">
+    <div class="header">
+      <div class="title">AW-4 TRANS</div>
+      <div class="status"><div class="dot"></div> SOLENOIDS OK</div>
+    </div>
+
+    <div class="trans-section">
+      <div class="gear-indicator">
+        <div class="gear-box">P</div>
+        <div class="gear-box">R</div>
+        <div class="gear-box">N</div>
+        <div class="gear-box">1</div>
+        <div class="gear-box">2</div>
+        <div class="gear-box active">3</div>
+        <div class="gear-box">OD</div>
+      </div>
+
+      <div style="text-align:center; margin-bottom:16px;">
+        <div style="font-family:'Orbitron',sans-serif; font-size:56px; font-weight:900; color:#ffb000; text-shadow:0 0 20px rgba(255,176,0,0.3);">3RD</div>
+        <div style="font-size:12px; color:#664400; letter-spacing:3px;">CURRENT GEAR</div>
+      </div>
+
+      <div style="font-size:12px; color:#664400; letter-spacing:2px; margin:12px 0 8px; padding-bottom:6px; border-bottom:1px solid #1a1200;">SOLENOID STATUS</div>
+
+      <div class="solenoid-row">
+        <div class="sol-name">SOLENOID A (1-2)</div>
+        <div class="sol-status engaged">ENGAGED</div>
+        <div class="sol-amps">0.8A</div>
+      </div>
+      <div class="solenoid-row">
+        <div class="sol-name">SOLENOID B (2-3)</div>
+        <div class="sol-status off">OFF</div>
+        <div class="sol-amps">0.0A</div>
+      </div>
+      <div class="solenoid-row">
+        <div class="sol-name">TCC LOCKUP</div>
+        <div class="sol-status engaged">LOCKED</div>
+        <div class="sol-amps">1.1A</div>
+      </div>
+
+      <div style="font-size:12px; color:#664400; letter-spacing:2px; margin:16px 0 8px; padding-bottom:6px; border-bottom:1px solid #1a1200;">TRANSMISSION DATA</div>
+
+      <div class="trans-data-row"><span class="td-label">VEHICLE SPEED</span><span class="td-value">55 MPH</span></div>
+      <div class="trans-data-row"><span class="td-label">ENGINE RPM</span><span class="td-value">2850</span></div>
+      <div class="trans-data-row"><span class="td-label">GEAR RATIO</span><span class="td-value">1.00:1</span></div>
+      <div class="trans-data-row"><span class="td-label">TRANS TEMP</span><span class="td-value">185&deg;F</span></div>
+      <div class="trans-data-row"><span class="td-label">SHIFT MODE</span><span class="td-value">AUTO</span></div>
+      <div class="trans-data-row"><span class="td-label">TPS</span><span class="td-value">22%</span></div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-btn"><div class="nav-icon">&#x1F3AF;</div>GAUGES</div>
+      <div class="nav-btn active"><div class="nav-icon">&#x2699;&#xFE0F;</div>TRANS</div>
+      <div class="nav-btn"><div class="nav-icon">&#x26A1;</div>RELAY</div>
+      <div class="nav-btn"><div class="nav-icon">&#x1F6E0;</div>DIAG</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;</div>SET</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 5: DIAGNOSTICS ===== -->
+<div class="phone-frame">
+  <div class="label">DIAGNOSTICS &mdash; SYSTEM STATUS</div>
+  <div class="screen amber-main">
+    <div class="header">
+      <div class="title">DIAGNOSTICS</div>
+      <div class="status"><div class="dot"></div> ALL SYSTEMS</div>
+    </div>
+
+    <div class="diag-section">
+      <div class="diag-card">
+        <div class="dc-title">CONNECTION STATUS</div>
+        <div class="diag-row"><span class="dr-label">REM Serial</span><span class="dr-value good">CONNECTED</span></div>
+        <div class="diag-row"><span class="dr-label">REM Port</span><span class="dr-value">/dev/ttyACM0</span></div>
+        <div class="diag-row"><span class="dr-label">Baud Rate</span><span class="dr-value">115200</span></div>
+        <div class="diag-row"><span class="dr-label">Relay Module</span><span class="dr-value good">ONLINE</span></div>
+        <div class="diag-row"><span class="dr-label">RS485 Addr</span><span class="dr-value">0x01</span></div>
+        <div class="diag-row"><span class="dr-label">Data Rate</span><span class="dr-value">24 Hz</span></div>
+      </div>
+
+      <div class="diag-card">
+        <div class="dc-title">SENSOR HEALTH</div>
+        <div class="diag-row"><span class="dr-label">Coolant Temp</span><span class="dr-value good">OK &bull; 198&deg;F</span></div>
+        <div class="diag-row"><span class="dr-label">Intake Air</span><span class="dr-value good">OK &bull; 82&deg;F</span></div>
+        <div class="diag-row"><span class="dr-label">O2 Sensor</span><span class="dr-value good">OK &bull; Cycling</span></div>
+        <div class="diag-row"><span class="dr-label">MAP Sensor</span><span class="dr-value good">OK &bull; 18.2 inHg</span></div>
+        <div class="diag-row"><span class="dr-label">TPS</span><span class="dr-value good">OK &bull; 22%</span></div>
+        <div class="diag-row"><span class="dr-label">Battery</span><span class="dr-value good">OK &bull; 14.2V</span></div>
+        <div class="diag-row"><span class="dr-label">Knock Sensor</span><span class="dr-value good">NO KNOCK</span></div>
+      </div>
+
+      <div class="diag-card">
+        <div class="dc-title">FAULT CODES</div>
+        <div class="no-faults">&#x2713; NO ACTIVE FAULT CODES</div>
+      </div>
+
+      <div class="diag-card">
+        <div class="dc-title">SYSTEM</div>
+        <div class="diag-row"><span class="dr-label">CPU Temp</span><span class="dr-value">52&deg;C</span></div>
+        <div class="diag-row"><span class="dr-label">CPU Usage</span><span class="dr-value">18%</span></div>
+        <div class="diag-row"><span class="dr-label">Memory</span><span class="dr-value">312 MB / 4 GB</span></div>
+        <div class="diag-row"><span class="dr-label">Uptime</span><span class="dr-value">2h 14m</span></div>
+        <div class="diag-row"><span class="dr-label">Data Logged</span><span class="dr-value">4,821 rows</span></div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-btn"><div class="nav-icon">&#x1F3AF;</div>GAUGES</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;&#xFE0F;</div>TRANS</div>
+      <div class="nav-btn"><div class="nav-icon">&#x26A1;</div>RELAY</div>
+      <div class="nav-btn active"><div class="nav-icon">&#x1F6E0;</div>DIAG</div>
+      <div class="nav-btn"><div class="nav-icon">&#x2699;</div>SET</div>
+    </div>
+  </div>
+</div>
+
+</body></html>

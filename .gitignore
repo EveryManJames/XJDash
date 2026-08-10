@@ -18,3 +18,4 @@ logs/*.csv
 
 # Claude Code
 .claude/
+.playwright-mcp/
