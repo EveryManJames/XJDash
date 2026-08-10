@@ -39,6 +39,21 @@ class DashWidget(BoxLayout):
             return (rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, rgb[3] / 255)
         return (rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, alpha)
 
+    def _watch_skin(self, callback):
+        """Invoke callback now and whenever the skin changes.
+
+        Deferred one frame so App.get_running_app() is available. Use for
+        widgets whose redraws are change-gated and would otherwise keep
+        stale colors after a theme switch.
+        """
+        def _sub(dt):
+            try:
+                self.skin.subscribe(callback)
+            except Exception:
+                pass
+            callback()
+        Clock.schedule_once(_sub, 0)
+
     def _schedule_update(self, hz=10):
         """Start polling at given Hz."""
         if self._update_event is None:

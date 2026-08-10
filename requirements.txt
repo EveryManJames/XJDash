@@ -1,8 +1,9 @@
 # XJDash Requirements
-# Python 3.9+
+# Python 3.9 - 3.13 (Kivy 2.3.1 has no prebuilt wheels for 3.14 yet —
+# a source build silently loses the SDL2 window backend, so stick to 3.13)
 
 # Core Framework
-kivy==2.3.0
+kivy==2.3.1
 kivy-garden==0.1.5
 
 # Optional: Material Design Components
@@ -12,20 +13,22 @@ kivy-garden==0.1.5
 pyserial==3.5
 
 # RS485/Modbus RTU Relay Control (Waveshare 8-Ch Relay Module)
+# Pinned: pymodbus 3.10+ renamed the write_coil/read_coils 'slave' kwarg
+# to 'device_id' — upgrading requires updating relay_controller.py
 pymodbus==3.7.4
 
 # Data Logging
 # (SQLite is built into Python)
 
 # Image Processing (for custom backgrounds)
-Pillow==10.1.0
+Pillow>=10.4
 
 # GPS Support (optional)
 pynmea2==1.19.0
 
 # Development/Testing
-pytest==7.4.3
-pytest-cov==4.1.0
+pytest>=8.0
+pytest-cov>=5.0
 
 # Mockup Generation
-reportlab==4.0.7
+reportlab>=4.2

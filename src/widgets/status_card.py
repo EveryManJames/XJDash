@@ -20,10 +20,18 @@ STATUS_COLORS = {
 
 
 class StatusRow(DashWidget):
-    """Single row in a status card: label on left, value on right."""
+    """Single row in a status card: label on left, value on right.
+
+    Value sources, in priority order:
+      value_fn — callable returning a string, or a (string, color_name)
+                 tuple for state-dependent colors; polled at 1Hz
+      data_key — live DataManager key formatted with format_str; 2Hz
+      value    — static text
+    """
 
     def __init__(self, label_text, value='--', data_key=None,
-                 format_str='{}', color_name='default', **kwargs):
+                 format_str='{}', color_name='default', value_fn=None,
+                 **kwargs):
         kwargs.setdefault('orientation', 'horizontal')
         kwargs.setdefault('size_hint_y', None)
         kwargs.setdefault('height', 24)
@@ -32,6 +40,7 @@ class StatusRow(DashWidget):
         self.data_key = data_key
         self.format_str = format_str
         self.color_name = color_name
+        self.value_fn = value_fn
         self._static_value = value
 
         self.label_widget = Label(
@@ -51,14 +60,24 @@ class StatusRow(DashWidget):
         self.add_widget(self.label_widget)
         self.add_widget(self.value_widget)
 
-        if data_key:
+        if value_fn:
+            self._schedule_update(hz=1)
+        elif data_key:
             self._schedule_update(hz=2)
         else:
-            from kivy.clock import Clock
-            Clock.schedule_once(self._apply_colors, 0)
+            self._watch_skin(self._apply_colors)
 
     def _update(self, dt):
-        if self.data_key:
+        if self.value_fn:
+            try:
+                result = self.value_fn()
+            except Exception:
+                result = '--'
+            if isinstance(result, tuple):
+                self.value_widget.text, self.color_name = result
+            else:
+                self.value_widget.text = str(result)
+        elif self.data_key:
             val = self.data_manager.get(self.data_key)
             if val is not None:
                 try:
@@ -108,6 +127,7 @@ class StatusCard(DashWidget):
                 data_key=row_def.get('data_key'),
                 format_str=row_def.get('format', '{}'),
                 color_name=row_def.get('color', 'default'),
+                value_fn=row_def.get('value_fn'),
             )
             self.add_widget(row)
 
@@ -116,8 +136,8 @@ class StatusCard(DashWidget):
         self.height = 22 + 8 + (row_count * 26) + 16
 
         self.bind(size=self._redraw_bg, pos=self._redraw_bg)
-        from kivy.clock import Clock
-        Clock.schedule_once(lambda dt: self._set_title_color(title_label), 0)
+        self._watch_skin(self._redraw_bg)
+        self._watch_skin(lambda *args: self._set_title_color(title_label))
 
     def _set_title_color(self, title_label):
         try:

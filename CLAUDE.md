@@ -5,15 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # XJDash - Digital Dashboard for 1990 Jeep Cherokee XJ
 
 ## Tech Stack
-- Python 3.9+ with Kivy 2.3.0 (UI framework)
+- Python 3.9-3.13 with Kivy 2.3.1 (UI framework)
 - pyserial for USB serial communication with Renix Engine Monitor (REM)
 - pymodbus 3.7.4 for RS485/Modbus RTU relay control (Waveshare 8-ch module)
-- pytest for testing (tests/ is currently empty)
+- pytest for testing (hardware-free unit tests in tests/; Kivy widgets are not covered)
 
 ## Commands
 - `python main.py` — run the app in a 480x800 desktop window with simulated REM data (a `venv/` exists at the repo root; activate it or use `venv/bin/python`)
 - `pytest tests/` — run all tests; `pytest tests/test_file.py::test_name` for one test
 - No lint/format tooling is configured
+- The venv must be Python 3.13 or older: Kivy 2.3.1 has no 3.14 wheels, and a source build silently loses the SDL2 window backend ("Unable to find any valuable Window provider")
+- On a retina Mac the UI renders at half scale (fixed pixel sizes, density-2 display); on the Pi's density-1 screen it renders as designed
 
 ## Architecture
 
@@ -45,8 +47,12 @@ Widgets draw with the Kivy canvas API (no .kv files anywhere; all UI is built in
 ### Skins
 `.xjskin` files in `skins/` are JSON themes loaded by `SkinManager` (src/skins/skin_manager.py): `colors` (0-255 RGB lists), `fonts`, `background`, `gauges`, `effects`. **Adding a skin requires two changes**: the `skins/*.xjskin` file AND the hardcoded `SKINS` list in src/screens/settings_screen.py.
 
+Skin changes propagate two ways: polling widgets pick up colors on their next tick automatically; change-gated widgets subscribe via `SkinManager.subscribe(callback)` (use `DashWidget._watch_skin()` or `BaseScreen.register_skin_label()`). `BaseScreen` draws the skin background (solid color, or image with darken overlay — falls back to solid if the image file is missing).
+
 ### Relay control
-`RelayController` speaks Modbus RTU (`write_coil`/`read_coils`) to the Waveshare module. Safety behaviors: 1.0s minimum cycle time per channel (`MIN_CYCLE_TIME`), and `all_off()` on connect and disconnect. Channel-to-function mapping lives in `DEFAULT_CHANNELS` (AW-4 solenoids 1-3, fan low/high, light bars, spare).
+`RelayController` speaks Modbus RTU (`write_coil`/`read_coils`) to the Waveshare module. Safety behaviors: 1.0s minimum cycle time per channel (`MIN_CYCLE_TIME`), and `all_off()` on connect and disconnect (`all_off` bypasses the cycle limit via `set_relay(..., force=True)` — a shutdown must never skip a channel). Channel mapping lives in `DEFAULT_CHANNELS`.
+
+**UI widgets must call `get_cached()`, never `get_relay()`/`get_all_states()`** — the latter are blocking Modbus transactions (9600-baud RS485, 1s timeout) and will freeze the Kivy main thread on real hardware. A background poller thread refreshes the cache with one `read_coils` transaction per cycle; all bus I/O is serialized by `_io_lock`. pymodbus is pinned to 3.7.4: version 3.10+ renamed the `slave` kwarg to `device_id`.
 
 ## Critical Constraints
 - Kivy `Config.set(...)` calls in main.py MUST come before any `kivy.core.window` import (order matters)

@@ -9,21 +9,24 @@ from kivy.graphics import Color, Rectangle, Line
 from kivy.app import App
 
 from widgets.base_widget import DashWidget
+from widgets.icons import IconWidget
 
 
+# Canvas icon names from the icon library \u2014 Kivy's bundled font has no
+# glyphs for the symbol/emoji codepoints, so text icons render as boxes.
 TABS = [
-    ('gauges', 'GAUGES', '\u25C9'),
-    ('transmission', 'TRANS', '\u2699'),
-    ('relay', 'RELAY', '\u26A1'),
-    ('diagnostics', 'DIAG', '\U0001F527'),
-    ('settings', 'SET', '\u2699'),
+    ('gauges', 'GAUGES', 'gauge'),
+    ('transmission', 'TRANS', 'arrows_updown'),
+    ('relay', 'RELAY', 'lightning'),
+    ('diagnostics', 'DIAG', 'wrench'),
+    ('settings', 'SET', 'gear'),
 ]
 
 
 class NavTab(ButtonBehavior, BoxLayout):
     """Single nav tab button."""
 
-    def __init__(self, screen_name, label_text, icon_text, **kwargs):
+    def __init__(self, screen_name, label_text, icon_name, **kwargs):
         kwargs['orientation'] = 'vertical'
         kwargs['size_hint_x'] = 1
         kwargs['padding'] = [0, 6, 0, 4]
@@ -33,14 +36,11 @@ class NavTab(ButtonBehavior, BoxLayout):
         self.screen_name = screen_name
         self.active = False
 
-        self.icon_label = Label(
-            text=icon_text,
-            font_size='20sp',
+        self.icon_widget = IconWidget(
+            icon_name=icon_name,
+            scale=0.85,
             size_hint_y=0.6,
-            halign='center',
-            valign='center',
         )
-        self.icon_label.bind(size=self.icon_label.setter('text_size'))
 
         self.text_label = Label(
             text=label_text,
@@ -51,13 +51,13 @@ class NavTab(ButtonBehavior, BoxLayout):
         )
         self.text_label.bind(size=self.text_label.setter('text_size'))
 
-        self.add_widget(self.icon_label)
+        self.add_widget(self.icon_widget)
         self.add_widget(self.text_label)
 
     def set_active(self, active, primary_color, dim_color):
         self.active = active
         color = primary_color if active else dim_color
-        self.icon_label.color = color
+        self.icon_widget.set_color(color)
         self.text_label.color = color
 
 
@@ -74,16 +74,16 @@ class NavBar(DashWidget):
         self._active_tab = active_tab
         self._tabs = []
 
-        for screen_name, label_text, icon_text in TABS:
-            tab = NavTab(screen_name, label_text, icon_text)
+        for screen_name, label_text, icon_name in TABS:
+            tab = NavTab(screen_name, label_text, icon_name)
             tab.bind(on_press=self._on_tab_press)
             self._tabs.append(tab)
             self.add_widget(tab)
 
         self.bind(size=self._redraw, pos=self._redraw)
-        # Defer initial color application
-        from kivy.clock import Clock
-        Clock.schedule_once(self._apply_colors, 0)
+        # Apply colors now and on every skin change
+        self._watch_skin(self._apply_colors)
+        self._watch_skin(self._redraw)
 
     def _on_tab_press(self, tab):
         if self.screen_manager and tab.screen_name != self._active_tab:
