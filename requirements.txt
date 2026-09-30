@@ -23,6 +23,16 @@ pymodbus==3.7.4
 # Image Processing (for custom backgrounds)
 Pillow>=10.4
 
+# Gyroscope / IMU - Adafruit BNO055 9-DOF Absolute Orientation Sensor
+adafruit-circuitpython-bno055==5.4.11
+adafruit-blinka==8.25.0
+
+# NeoPixel WS2812B LED strip (Pi only, requires root for PWM DMA)
+# rpi_ws281x==5.0.0
+
+# GPIO - Ignition sense shutdown & power latch (Pi only, not installed on desktop)
+# RPi.GPIO==0.7.1
+
 # GPS Support (optional)
 pynmea2==1.19.0
 
