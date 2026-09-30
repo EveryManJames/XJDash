@@ -72,7 +72,9 @@ class StatusRow(DashWidget):
             try:
                 result = self.value_fn()
             except Exception:
-                result = '--'
+                # Reset color too — keeping a previous error/success tint
+                # on placeholder text would misreport state
+                result = ('--', 'default')
             if isinstance(result, tuple):
                 self.value_widget.text, self.color_name = result
             else:

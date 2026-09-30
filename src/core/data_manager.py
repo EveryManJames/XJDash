@@ -7,6 +7,10 @@ import threading
 import time
 from typing import Dict, Any, Optional, Callable
 
+# Data older than this (seconds) is treated as stale by UI consumers —
+# the single definition keeps header, gauges, and diagnostics in agreement.
+STALE_AFTER = 2.0
+
 
 class DataManager:
     """

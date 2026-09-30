@@ -14,7 +14,7 @@ from kivy.uix.boxlayout import BoxLayout
 
 from screens.base_screen import BaseScreen
 from widgets.status_card import StatusCard
-from core.data_manager import DataManager
+from core.data_manager import DataManager, STALE_AFTER
 
 
 def _app():
@@ -26,6 +26,11 @@ def _rem_status():
     sm = getattr(app, 'serial_manager', None)
     if not sm or not sm.connected:
         return ('DISCONNECTED', 'err')
+    # Same liveness rule as the header: a connected port that stopped
+    # producing data is NO DATA, not CONNECTED.
+    age = DataManager().age('RPM')
+    if age is None or age > STALE_AFTER:
+        return ('NO DATA', 'err')
     if sm.use_mock:
         return ('MOCK DATA', 'warn')
     return ('CONNECTED', 'good')
@@ -58,8 +63,14 @@ def _relay_addr():
 
 
 def _data_rate():
-    hz = DataManager().get('_rem_hz')
-    return f'{hz:.1f} Hz' if hz is not None else '--'
+    dm = DataManager()
+    hz = dm.get('_rem_hz')
+    age = dm.age('_rem_hz')
+    # The rate is only republished while lines arrive — an old value
+    # means traffic stopped, so show placeholder instead of a stale Hz.
+    if hz is None or age is None or age > STALE_AFTER:
+        return '--'
+    return f'{hz:.1f} Hz'
 
 
 def _platform_name():

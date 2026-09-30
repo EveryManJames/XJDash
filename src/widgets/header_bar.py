@@ -52,8 +52,9 @@ class HeaderBar(DashWidget):
     def _update(self, dt):
         # Data is "live" only if RPM was refreshed recently — a value
         # sitting in the store after the REM dies doesn't count.
+        from core.data_manager import STALE_AFTER
         age = self.data_manager.age('RPM')
-        connected = age is not None and age < 2.0
+        connected = age is not None and age < STALE_AFTER
 
         from kivy.app import App
         app = App.get_running_app()
